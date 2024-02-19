@@ -1,6 +1,11 @@
+
+rm(list = ls())
+
+
 require(pacman)
 require(tidyverse)
 require(rvest)
+
 
 
 # 1. Importar la base de datos:
