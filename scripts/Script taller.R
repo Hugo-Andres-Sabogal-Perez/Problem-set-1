@@ -24,7 +24,7 @@ importar_datos<-function(){
     
   }
   # Seleccion de la muetra de interes: edad >= 18 y empleado (ocu).
-  datos <- datos[datos$age >= 18 & datos$ocu != 1,]
+  datos <- datos[datos$age >= 18 & datos$ocu == 1,]
   datos <- datos[,-1]
   
   return(datos)
