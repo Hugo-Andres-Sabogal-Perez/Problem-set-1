@@ -1,5 +1,5 @@
 #### Script problem set 1 ######
-
+setwd('/Users/juansilva/Desktop/Universidad/Semestre 8/Big Data')
 #limpiar entorno
 rm(list = ls())
 
@@ -33,18 +33,39 @@ importar_datos<-function(){
 
 DF<-importar_datos()
 
+vars = length(colnames(DF))
+ED = data.frame('Variable' = colnames(DF), 'Tipo' = rep(NA, vars) , 'Missings' = rep(NA, vars), 'Media' =  rep(NA, vars), 
+                'Desviacion Estandard' = rep(NA, vars))
+
+for(col in colnames(DF)){
+  df = DF[,colnames(DF) == col]
+  NAs = sum(is.na(df))
+  mean = mean(df, na.rm = T)
+  sd = sqrt(var(df, na.rm = T))
+  
+  ED[ED$Variable == col, 3] = NAs
+  ED[ED$Variable == col, 4] = mean
+  ED[ED$Variable == col, 5] = sd
+}
+
+C = ED %>% filter(Desviacion.Estandard == 0) %>% select(Variable) %>% as.vector()
+
+# 1. Limpieza de datos:
+DF = DF[!is.na(DF$y_ingLab_m_ha),]
+DF = DF1 %>% select(-C$Variable)
+
+write.csv(x = DF, file = "DF.csv", row.names = FALSE) 
 
 # 2. Estadisticas descriptivas:
 #salario real o nominal?
-base= DF %>% select(age,clase,depto,formal,maxEducLevel,orden,p6426,p7040,sex,sizeFirm,y_ingLab_m_ha)
+base= DF %>% select(age, depto, oficio, formal, maxEducLevel, orden, p7040, sex, sizeFirm, y_ingLab_m_ha, hoursWorkUsual)
 stargazer(base, type= "text", summary=T, title = "Estadisticas Descriptivas",out = "Views/esta_des.txt")
 #Gráficas 
 #1. Histograma
 
 base$ln_sal<-log(base$y_ingLab_m_ha)
 
-hist(base$ln_sal,main=" "
-     , xlab='Logaritmo del salario por hora', ylab='Frecuencia' )
+hist(base$ln_sal,main=" ", xlab='Logaritmo del salario por hora', ylab='Frecuencia' )
 
 
 #2. Dispersión
