@@ -1,11 +1,14 @@
+#### Script problem set 1 ######
 
+#limpiar entorno
 rm(list = ls())
 
-
+#llamar librerias
 require(pacman)
 require(tidyverse)
 require(rvest)
-require(library)
+require(stargazer)
+
 
 
 # 1. Importar la base de datos:
