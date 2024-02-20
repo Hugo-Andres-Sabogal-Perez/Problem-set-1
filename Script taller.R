@@ -5,7 +5,7 @@ rm(list = ls())
 require(pacman)
 require(tidyverse)
 require(rvest)
-
+require(library)
 
 
 # 1. Importar la base de datos:
@@ -50,18 +50,25 @@ rm(html1, html2, html3, html4, html5, html6, html7, html8, html9, html10, C1, C2
    Df1, Df2, Df3, Df4, Df5, Df6, Df7, Df8, Df9, Df10)
 
 # Seleccion de la muetra de interes: edad >= 18 y empleado (dsi).
-DF = DF[DF$age >= 18 & DF$dsi != 1,]
+DF = DF[DF$age >= 18 & DF$ocu != 1,]
 DF = DF[,-1]
 
 # 2. Estadisticas descriptivas:
 #salario real o nominal?
-tabla= DF %>% select(age,clase,depto,formal,maxEducLevel,orden,p6426,p7040,sex,sizeFirm,y_ingLab_m_ha)
-stargazer(tabla, type= "text", summary=T, title = "Estadisticas Descriptivas",out = "Views/esta_des.txt")
+base= DF %>% select(age,clase,depto,formal,maxEducLevel,orden,p6426,p7040,sex,sizeFirm,y_ingLab_m_ha)
+stargazer(base, type= "text", summary=T, title = "Estadisticas Descriptivas",out = "Views/esta_des.txt")
 #Gráficas 
-#1. 
-histograma_sal=ggplot(data=as.data.frame(DF$y_ingLab_m_ha), aes(x=data)) +
-  geom_histogram(col='black', fill='grey95', bins=30) +
-  theme_bw() +  labs(title='Distribución del Salario') +
-  ylab('Densidad') + xlab('Salario (horas)')
-histograma_sal
+#1. Histograma
+
+base$ln_sal<-log(base$y_ingLab_m_ha)
+
+hist(ln_sal,main=" "
+     , xlab='Logaritmo del salario por hora', ylab='Frecuencia' )
+
+
+#2. Dispersión
+dispersion<-ggplot(base, aes(x=age, y=ln_sal)) + geom_point() + theme_bw() +
+            geom_smooth(method = 'lm') +xlab('Edad') + ylab('Logaritmo del salario por hora')
+            
+dispersion
 
