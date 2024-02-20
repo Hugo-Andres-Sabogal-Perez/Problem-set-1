@@ -1,5 +1,5 @@
 #### Script problem set 1 ######
-
+setwd('/Users/juansilva/Desktop/Universidad/Semestre 8/Big Data')
 #limpiar entorno
 rm(list = ls())
 
@@ -8,7 +8,6 @@ require(pacman)
 require(tidyverse)
 require(rvest)
 require(stargazer)
-require(rio)
 
 
 importar_datos<-function(){
@@ -56,37 +55,28 @@ DF = DF[!is.na(DF$y_ingLab_m_ha),]
 DF = DF1 %>% select(-C$Variable)
 
 write.csv(x = DF, file = "DF.csv", row.names = FALSE) 
-DF=import("Stores/DF.csv")
+
 # 2. Estadisticas descriptivas:
 #salario real o nominal?
-base= DF %>% select(age,oficio, formal, maxEducLevel, orden, p7040, sex, sizeFirm, y_ingLab_m_ha, hoursWorkUsual)
+base= DF %>% select(age, depto, oficio, formal, maxEducLevel, orden, p7040, sex, sizeFirm, y_ingLab_m_ha, hoursWorkUsual)
 stargazer(base, type= "text", summary=T, title = "Estadisticas Descriptivas",out = "Views/esta_des.txt")
 #Gráficas 
 #1. Histograma
 
 base$ln_sal<-log(base$y_ingLab_m_ha)
 
-histograma <- ggplot(base, aes(x=ln_sal)) + geom_histogram(color="white",fill="darkblue") + xlab('Logaritmo del salario por hora') + ylab('Frecuencia') + theme_bw() 
-histograma
+hist(base$ln_sal,main=" ", xlab='Logaritmo del salario por hora', ylab='Frecuencia' )
 
-ggsave("Views/histograma.png", width = 6, height = 4,plot=histograma)
 
 #2. Dispersión
-dispersion<-ggplot(base, aes(x=age, y=ln_sal)) + geom_point(color="navy") + theme_bw() +
-            geom_smooth(method = 'lm',color="firebrick") +xlab('Edad') + ylab('Logaritmo del salario por hora')
+dispersion<-ggplot(base, aes(x=age, y=ln_sal)) + geom_point() + theme_bw() +
+            geom_smooth(method = 'lm') +xlab('Edad') + ylab('Logaritmo del salario por hora')
             
 dispersion
-ggsave("Views/dispersion.png", width = 6, height = 4,plot=dispersion)
 
-#3. Regresión_ Age
+#3. Regresión
 base$age_2 <- base$age^2
 modelo1 <- lm(ln_sal~age + age_2, data=base)
 stargazer(modelo1, type="text", title = "Resultados Modelo 1", out = "Views/mod1.txt")
 
-#4. Regresión: Female
-base$Female <- ifelse(base$sex == 0, 1, 0)
-modelo2 <- lm(ln_sal~ Female + age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
-modelo2
-stargazer(modelo2, keep="Female", type="text", title = "Resultados Modelo 1", out = "Views/mod2.txt")
-
-#5.
+#4. 
