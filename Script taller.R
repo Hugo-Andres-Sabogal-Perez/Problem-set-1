@@ -1,5 +1,5 @@
 #### Script problem set 1 ######
-setwd('/Users/juansilva/Desktop/Universidad/Semestre 8/Big Data')
+
 #limpiar entorno
 rm(list = ls())
 
@@ -8,7 +8,10 @@ require(pacman)
 require(tidyverse)
 require(rvest)
 require(stargazer)
-
+require(rio)
+require(caret)
+require(gridExtra)
+require(skimr)
 
 importar_datos<-function(){
   
@@ -55,28 +58,90 @@ DF = DF[!is.na(DF$y_ingLab_m_ha),]
 DF = DF1 %>% select(-C$Variable)
 
 write.csv(x = DF, file = "DF.csv", row.names = FALSE) 
-
+DF=import("Stores/DF.csv")
 # 2. Estadisticas descriptivas:
 #salario real o nominal?
-base= DF %>% select(age, depto, oficio, formal, maxEducLevel, orden, p7040, sex, sizeFirm, y_ingLab_m_ha, hoursWorkUsual)
+base= DF %>% select(age,oficio, formal, maxEducLevel, orden, p7040, sex, sizeFirm, y_ingLab_m_ha, hoursWorkUsual)
 stargazer(base, type= "text", summary=T, title = "Estadisticas Descriptivas",out = "Views/esta_des.txt")
 #Gráficas 
 #1. Histograma
 
 base$ln_sal<-log(base$y_ingLab_m_ha)
 
-hist(base$ln_sal,main=" ", xlab='Logaritmo del salario por hora', ylab='Frecuencia' )
+histograma <- ggplot(base, aes(x=ln_sal)) + geom_histogram(color="white",fill="darkblue") + xlab('Logaritmo del salario por hora') + ylab('Frecuencia') + theme_bw() 
+histograma
 
+ggsave("Views/histograma.png", width = 6, height = 4,plot=histograma)
 
 #2. Dispersión
-dispersion<-ggplot(base, aes(x=age, y=ln_sal)) + geom_point() + theme_bw() +
-            geom_smooth(method = 'lm') +xlab('Edad') + ylab('Logaritmo del salario por hora')
+dispersion<-ggplot(base, aes(x=age, y=ln_sal)) + geom_point(color="navy") + theme_bw() +
+            geom_smooth(method = 'lm',color="firebrick") +xlab('Edad') + ylab('Logaritmo del salario por hora')
             
 dispersion
+ggsave("Views/dispersion.png", width = 6, height = 4,plot=dispersion)
 
-#3. Regresión
+#3. Regresión_ Age
 base$age_2 <- base$age^2
 modelo1 <- lm(ln_sal~age + age_2, data=base)
 stargazer(modelo1, type="text", title = "Resultados Modelo 1", out = "Views/mod1.txt")
 
+
+
+#4. Regresión: Female
+base$Female <- ifelse(base$sex == 0, 1, 0)
+modelo2 <- lm(ln_sal~ Female + age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
+modelo2
+stargazer(modelo2, keep="Female", type="text", title = "Resultados Modelo 1", out = "Views/mod2.txt")
+
+#5.Predicting Earnings 
+set.seed(10101)  
+
+inTrain <- createDataPartition(
+  y = base$ln_sal,  ## the outcome data are needed
+  p = .70, ## The percentage of data in the
+  list = FALSE
+)
+
+training <- base[ inTrain,]
+testing  <- base[-inTrain,]
+
+# Training 7 models 
+# 1. 
+form_1 <- ln_sal ~ age + age_2 
+modelo1a <- lm(form_1,
+               data = training)
+predictions <- predict(modelo1a, testing)
+score1a<- RMSE(predictions, testing$ln_sal )
+score1a
+
+# 2. 
+form_2<- ln_sal ~ Female + age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm
+
+modelo2a <- lm(form_2,
+               data = training )
+predictions <- predict(modelo2a, testing)
+score2a<- RMSE(predictions, testing$ln_sal )
+
+score2a
+
+# 3. 
+form_3 <- ln_sal~ age + age^2 + age^3 + age^4 + age^5 + age^6 + age^7 + age^8
+modelo3a <- lm(form_3, data = training)
+predictions <- predict(modelo3a, testing)
+score3a <- RMSE(predictions, testing$ln_sal)
+score3a
+
 #4. 
+form_4 <- ln_sal ~ age + age_2 +
+  poly(age,3,raw=TRUE):Female  + 
+  poly(age,3,raw=TRUE):maxEducLevel  +
+  poly(age,3,raw=TRUE):formal +
+  poly(age,3,raw=TRUE):oficio +
+  poly(age,3,raw=TRUE):hoursWorkUsual + 
+  poly(age,3,raw=TRUE):p7040 +
+  poly(age,3,raw=TRUE):sizeFirm 
+modelo4a <- lm(form_4,
+               data = training )
+predictions <- predict(modelo4a, testing)
+score4a<- RMSE(predictions, testing$ln_sal)
+score4a
