@@ -72,3 +72,9 @@ dispersion<-ggplot(base, aes(x=age, y=ln_sal)) + geom_point() + theme_bw() +
             
 dispersion
 
+#3. Regresión
+base$age_2 <- base$age^2
+modelo1 <- lm(ln_sal~age + age_2, data=base)
+stargazer(modelo1, type="text", title = "Resultados Modelo 1", out = "Views/mod1.txt")
+
+#4. 
