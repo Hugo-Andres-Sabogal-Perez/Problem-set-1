@@ -57,5 +57,11 @@ DF = DF[,-1]
 #salario real o nominal?
 tabla= DF %>% select(age,clase,depto,formal,maxEducLevel,orden,p6426,p7040,sex,sizeFirm,y_ingLab_m_ha)
 stargazer(tabla, type= "text", summary=T, title = "Estadisticas Descriptivas",out = "Views/esta_des.txt")
-
+#Gráficas 
+#1. 
+histograma_sal=ggplot(data=as.data.frame(DF$y_ingLab_m_ha), aes(x=data)) +
+  geom_histogram(col='black', fill='grey95', bins=30) +
+  theme_bw() +  labs(title='Distribución del Salario') +
+  ylab('Densidad') + xlab('Salario (horas)')
+histograma_sal
 
