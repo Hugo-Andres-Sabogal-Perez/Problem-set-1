@@ -1,6 +1,11 @@
+
+rm(list = ls())
+
+
 require(pacman)
 require(tidyverse)
 require(rvest)
+
 
 
 # 1. Importar la base de datos:
@@ -49,17 +54,8 @@ DF = DF[DF$age >= 18 & DF$dsi != 1,]
 DF = DF[,-1]
 
 # 2. Estadisticas descriptivas:
-vars = length(colnames(DF))
-ED = data.frame('Variable' = colnames(DF), 'Tipo' = rep(NA, vars) , 'Missings' = rep(NA, vars), 'Media' =  rep(NA, vars), 
-                'Desviacion Estandard' = rep(NA, vars))
-for(col in colnames(DF)){
-  df = DF[,colnames(DF) == col]
-  NAs = sum(is.na(df))
-  mean = mean(df, na.rm = T)
-  sd = sqrt(var(df, na.rm = T))
-  
-  ED[ED$Variable == col, 3] = NAs
-  ED[ED$Variable == col, 4] = mean
-  ED[ED$Variable == col, 5] = sd
-}
+#salario real o nominal?
+tabla= DF %>% select(age,clase,depto,formal,maxEducLevel,orden,p6426,p7040,sex,sizeFirm,y_ingLab_m_ha)
+stargazer(tabla, type= "text", summary=T, title = "Estadisticas Descriptivas",out = "Views/esta_des.txt")
+
 
