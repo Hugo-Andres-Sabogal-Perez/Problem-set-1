@@ -63,10 +63,24 @@ DF=import("Stores/DF.csv")
 #salario real o nominal?
 base= DF %>% select(age,oficio, formal, maxEducLevel, orden, p7040, sex, sizeFirm, y_ingLab_m_ha, hoursWorkUsual)
 stargazer(base, type= "text", summary=T, title = "Estadisticas Descriptivas",out = "Views/esta_des.txt")
+
+# Missings de la sub muestra:1
+vars = length(colnames(base))
+missingb = data.frame('Variable' = colnames(base), 'Missings' = rep(NA, vars))
+for(col in colnames(base)){
+  df = base[,colnames(base) == col]
+  NAs = sum(is.na(df))
+
+  missingb[missingb$Variable == col, 2] = NAs
+}
+
+# Eliminar la observacion:
+base = base[!(is.na(base$maxEducLevel)),]
+
 #Gráficas 
 #1. Histograma
 
-base$ln_sal<-log(base$y_ingLab_m_ha)
+base$ln_sal = log(base$y_ingLab_m_ha)
 
 histograma <- ggplot(base, aes(x=ln_sal)) + geom_histogram(color="white",fill="darkblue") + xlab('Logaritmo del salario por hora') + ylab('Frecuencia') + theme_bw() 
 histograma
@@ -74,10 +88,11 @@ histograma
 ggsave("Views/histograma.png", width = 6, height = 4,plot=histograma)
 
 #2. Dispersión
-dispersion<-ggplot(base, aes(x=age, y=ln_sal)) + geom_point(color="navy") + theme_bw() +
+# El ln(w) es relativamente homocedasttico sobre la edad.
+dispersion = ggplot(base, aes(x=age, y=ln_sal)) + geom_point(color="navy") + theme_bw() +
             geom_smooth(method = 'lm',color="firebrick") +xlab('Edad') + ylab('Logaritmo del salario por hora')
-            
 dispersion
+
 ggsave("Views/dispersion.png", width = 6, height = 4,plot=dispersion)
 
 #3. Regresión_ Age
@@ -85,13 +100,47 @@ base$age_2 <- base$age^2
 modelo1 <- lm(ln_sal~age + age_2, data=base)
 stargazer(modelo1, type="text", title = "Resultados Modelo 1", out = "Views/mod1.txt")
 
+# Intervalo de confianza con boostrap:
+boostage <-function(data,index){
+  
+  f = lm(ln_sal~age + age_2, data, subset = index)
+  
+  coefs = f$coefficients
+  
+  b2 = coefs[2] 
+  b3 = coefs[3] 
+  
+  page = -b2/(2*b3)
+  
+  
+  return(page)
+}
 
+# Se hace la estimacion por bootstrap:
+peakage = boot(data=base, boostage, R=nrow(base))
+peakage
+
+# Calculo intervalo de confianza:
+boot.ci(boot.out = peakage, conf = c(0.95, 0.99), type = 'all')
 
 #4. Regresión: Female
 base$Female <- ifelse(base$sex == 0, 1, 0)
 modelo2 <- lm(ln_sal~ Female + age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
 modelo2
+stargazer(modelo2, type="text", title = "Resultados Modelo 1", out = "Views/mod2.txt")
 stargazer(modelo2, keep="Female", type="text", title = "Resultados Modelo 1", out = "Views/mod2.txt")
+
+# FWL simple:
+ypmod = lm(ln_sal ~ age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
+xpmod = lm(Female ~ age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
+
+yprima = predict(ypmod)
+xprima = predict(xpmod)
+
+FWL = data.frame('yprima' = yprima, 'xprima' = xprima)
+
+fwlmod = lm(yprima ~ xprima, data = FWL)
+stargazer(fwlmod, type="text", title = "Resultados FWL Simple", out = "Views/mod2.txt")
 
 #5.Predicting Earnings 
 set.seed(10101)  
