@@ -15,10 +15,10 @@ Constant                     7.374***
                               (0.068)          
                                                
 -----------------------------------------------
-Observations                   9,892           
+Observations                   9,891           
 R2                             0.044           
 Adjusted R2                    0.044           
-Residual Std. Error      0.711 (df = 9889)     
-F Statistic          228.437*** (df = 2; 9889) 
+Residual Std. Error      0.711 (df = 9888)     
+F Statistic          228.529*** (df = 2; 9888) 
 ===============================================
 Note:               *p<0.1; **p<0.05; ***p<0.01
