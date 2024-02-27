@@ -13,7 +13,7 @@ require(caret)
 require(gridExtra)
 require(skimr)
 require(boot)
-
+require(tidytable)
 
 ### Funcion para importar datos
 importar_datos<-function(){
@@ -124,6 +124,7 @@ dispersion2 = ggplot(base, aes(x = age, y = ln_sal)) +
 
 dispersion2
 
+
 #4. barras
 #Creamos una variable categorica para la edad
 base$edad_cat <- cut(base$age, breaks = c(17, 29, 45, 59, Inf), labels = c("18-29", "30-45", "46-59", "60 o más"))
@@ -138,12 +139,24 @@ barras1 <- ggplot(edad_salario, aes(x = edad_cat, y = mean_sal)) +
   theme_bw() +
   scale_y_continuous(labels = scales::dollar_format()) 
 barras1
-       
+
 
 #3. Regresión_ Age
 base$age_2 <- base$age^2
 modelo1 <- lm(ln_sal~age + age_2, data=base)
 stargazer(modelo1, type="text", title = "Resultados Modelo 1", out = "Views/mod1.txt")
+
+#3.b  
+
+dispersion3 = ggplot(base, aes(x = age, y = ln_sal)) +
+  geom_point(color='salmon') +
+  theme_bw() +
+  geom_smooth(color = "black", method = "lm", formula = y ~ poly(x, 2)) +
+  xlab("Edad") +
+  ylab("Logaritmo del salario por hora") 
+
+dispersion3
+
 
 # Intervalo de confianza con boostrap:
 boostage <-function(data,index){
@@ -168,19 +181,55 @@ peakage
 # Calculo intervalo de confianza:
 boot.ci(boot.out = peakage, conf = c(0.95, 0.99), type = 'all')
 
-#4. Regresión: Female
+#4. Regresión simple: Female
 base$Female <- ifelse(base$sex == 0, 1, 0)
-modelo2 <- lm(ln_sal~ Female + age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
+modelo2 <- lm(ln_sal~ Female , data=base)
 modelo2
 stargazer(modelo2, type="text", title = "Resultados Modelo 1", out = "Views/mod2.txt")
 stargazer(modelo2, keep="Female", type="text", title = "Resultados Modelo 1", out = "Views/mod2.txt")
+
+#4. Regresión multiple (controles): Female
+
+#creamos un ID
+base$id<-rownames(base)
+
+#Creamos una dummy por cada obseravación
+base<-get_dummies(
+  base,
+  cols = "id",
+  prefix = TRUE,
+  prefix_sep = "_",
+  drop_first = T,
+  dummify_na = TRUE
+)
+
+
+id_variables <- grep("^id_", names(base), value = TRUE)
+
+typeof(colnames(base))
+# Construir la fórmula para la regresión lineal
+formula <- as.formula(paste("y ~", paste(id_variables, collapse = " + ")))
+
+formula <- as.formula(paste("y ~", paste(id_variables, collapse = " + ")))
+# Realizar la regresión lineal
+lm_model <- lm(formula, data)
+
+# Ver el resumen del modelo
+summary(lm_model)
+
+base$Female <- ifelse(base$sex == 0, 1, 0)
+modelo3 <- lm(ln_sal~ Female + age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm + factor(id) , data=base)
+modelo3
+stargazer(modelo2, type="text", title = "Resultados Modelo 1", out = "Views/mod2.txt")
+stargazer(modelo2, keep="Female", type="text", title = "Resultados Modelo 1", out = "Views/mod2.txt")
+
 
 # FWL simple:
 ypmod = lm(ln_sal ~ age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
 xpmod = lm(Female ~ age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
 
-yprima = predict(ypmod)
-xprima = predict(xpmod)
+yprima = residuals(ypmod)
+xprima = residuals(xpmod)
 
 FWL = data.frame('yprima' = yprima, 'xprima' = xprima)
 
