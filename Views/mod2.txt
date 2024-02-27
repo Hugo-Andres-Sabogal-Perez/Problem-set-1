@@ -1,18 +1,21 @@
 
-Resultados Modelo 1
+Resultados FWL Simple
 ===============================================
                         Dependent variable:    
                     ---------------------------
-                              ln_sal           
+                             residuals         
 -----------------------------------------------
-Female                       -0.045***         
-                              (0.015)          
+residuals.1                  -0.183***         
+                              (0.011)          
+                                               
+Constant                       0.000           
+                              (0.005)          
                                                
 -----------------------------------------------
 Observations                   9,891           
-R2                             0.001           
-Adjusted R2                    0.001           
-Residual Std. Error      0.727 (df = 9889)     
-F Statistic           9.354*** (df = 1; 9889)  
+R2                             0.025           
+Adjusted R2                    0.025           
+Residual Std. Error      0.543 (df = 9889)     
+F Statistic          255.115*** (df = 1; 9889) 
 ===============================================
 Note:               *p<0.1; **p<0.05; ***p<0.01
