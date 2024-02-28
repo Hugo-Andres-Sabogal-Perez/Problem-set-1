@@ -41,30 +41,32 @@ importar_datos<-function(){
 
 DF<-importar_datos()
 
-vars = length(colnames(DF))
-ED = data.frame('Variable' = colnames(DF), 'Tipo' = rep(NA, vars) , 'Missings' = rep(NA, vars), 'Media' =  rep(NA, vars), 
-                'Desviacion Estandard' = rep(NA, vars))
+## importamos y exportamos para no volver hacer web scraping
+write.csv(x = DF, file = "Stores/DF.csv", row.names = FALSE) 
+DF<-import("Stores/DF.csv")
 
+# Se crea una base para guardar estadisticas descriptivas:
+vars = length(colnames(DF))
+ED = data.frame('Variable' = colnames(DF), 'Missings' = rep(NA, vars), 'Media' =  rep(NA, vars), 'Desviacion Estandard' = rep(NA, vars))
+
+# Se cuentan los missings y se calcula la media y la ds de la muestra:
 for(col in colnames(DF)){
   df = DF[,colnames(DF) == col]
   NAs = sum(is.na(df))
   mean = mean(df, na.rm = T)
   sd = sqrt(var(df, na.rm = T))
   
-  ED[ED$Variable == col, 3] = NAs
-  ED[ED$Variable == col, 4] = mean
-  ED[ED$Variable == col, 5] = sd
+  ED[ED$Variable == col, 2] = NAs
+  ED[ED$Variable == col, 3] = mean
+  ED[ED$Variable == col, 4] = sd
 }
 
-C = ED %>% filter(Desviacion.Estandard == 0) %>% select(Variable) %>% as.vector()
-
 # 1. Limpieza de datos:
+# Se eliminan las constantes y las variables sin observaciones:
+C = ED %>% filter(Desviacion.Estandard == 0 | is.na(Desviacion.Estandard)) %>% select(Variable) %>% as.vector()
+ED = ED %>% filter(Desviacion.Estandard != 0 | !is.na(Desviacion.Estandard))
 DF = DF[!is.na(DF$y_ingLab_m_ha),]
-DF = DF1 %>% select(-C$Variable)
-
-## importamos y exportamos para no volver hacer web scraping
-write.csv(x = DF, file = "Stores/DF.csv", row.names = FALSE) 
-DF<-import("Stores/DF.csv")
+DF = DF %>% select(-C$Variable)
 
 # 2. Estadisticas descriptivas:
 base= DF %>% select(age,oficio, formal, maxEducLevel, orden, p7040, sex, sizeFirm, y_ingLab_m_ha, hoursWorkUsual)
@@ -303,6 +305,47 @@ score4a<- RMSE(predictions, testing$ln_sal)
 score4a
 
 #5.
-porcentaje_obs = nrow(DF)*0.1
-ED=ED %>% filter(Missings<porcentaje_obs & Desviacion.Estandard !=0) 
+# Se admitirán 20% de datos faltantes como máximo:
+porcentaje_obs = nrow(DF)*0.2
+DF= DF %>% select(ED[ED$Missings<porcentaje_obs, 1]) 
+ED = ED[ED$Missings<porcentaje_obs,]
+
+# Clasificación por tipo de variable:
+ED$Tipo = rep(NA, nrow(ED))
+ordinales = c('estrato1','age', 'p6100','p6210', 'p6210s1',  "oficio", "relab", "p6870", "fex_dpto","hoursWorkUsual", 
+              "fweight", "maxEducLevel", "regSalud",   "totalHoursWorked", "sizeFirm")
+categoricas = c('mes', 'p6050', "p6240", "p6920")
+binarias = c('sex',"college", "formal", "informal", "microEmpresa")
+binar12 = c('p6090',"p7040","p7090","p7495","p7505", "cotPension")
+continuas = c('p6426', "p6500", "p6510s1", "p6545s1", "p6580s1", "p6585s1a1", "p6585s2a1", "p6585s3a1", "p6585s4a1", 
+              "p6590s1", "p6600s1", "p6610s1", "p6620s1", "p6630s1a1", "p6630s2a1", "p6630s3a1", "p6630s4a1","p6630s6a1",
+              "p7070", "p7500s1a1", "p7500s2a1", "p7500s3a1", "p7510s1a1", "p7510s2a1", "p7510s3a1", "p7510s5a1","p7510s6a1",
+              "p7510s7a1", "impa", "isa", "ie", "iof1", "iof2", "iof3h", "iof3i","iof6", "ingtotob", "ingtot","fex_c",
+              "y_salary_m", "y_salary_m_hu", "y_ingLab_m", "y_ingLab_m_ha", "y_total_m", "y_total_m_ha")
+rem = c("p6510","p6545","p6580","p6585s1","p6585s2", "p6585s3", "p6585s4","p6590", "p6600", "p6610", "p6620", "p6630s1",
+        "p6630s2", "p6630s3", "p6630s4", "p6630s6", 'directorio', 'secuencia_p', 'orden')                                                  
+
+ED = ED[!(ED$Variable %in% rem),]                                           
+ED = ED %>% mutate(Tipo = case_when(Variable %in% continuas ~ 'continua',
+                                    Variable %in% ordinales ~ 'ordi',
+                                    Variable %in% categoricas ~ 'cat',
+                                    Variable %in% c(binarias, binar12) ~ 'dummy'))                                 
+                                       
+                   
+# Se estandarizan los datos ordinales y contunuos:
+DFstandard = DF %>% mutate_at(c(continuas, ordinales), ~(scale(.) %>% as.vector))
+
+# Se crean dummys para las categoricas:
+DFstandard = get_dummies(
+  DFstandard,
+  cols = categoricas,
+  prefix = TRUE,
+  prefix_sep = "_",
+  drop_first = FALSE,
+  dummify_na = TRUE)
+
+# Se limpian las binarias:
+DFstandard = DFstandard %>% mutate_at(binar12, ~  )
+
+
 
