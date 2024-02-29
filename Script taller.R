@@ -73,7 +73,8 @@ DF = DF[!is.na(DF$y_ingLab_m_ha),]
 DF = DF %>% select(-C$Variable)
 
 # 2. Estadisticas descriptivas:
-base= DF %>% select(age,oficio, formal, maxEducLevel, orden, p7040, sex, sizeFirm, y_ingLab_m_ha, hoursWorkUsual)
+base$ln_sal = log(base$y_ingLab_m_ha) #Se crea el logaritmo del salario por horas para normalizar los valores de la variable.
+base= DF %>% select(age,oficio, formal, maxEducLevel, orden, p7040, sex, sizeFirm, ln_sal, hoursWorkUsual)
 stargazer(base, type= "text", summary=T, title = "Estadisticas Descriptivas",out = "Views/esta_des.txt")
 
 # Missings de la sub muestra:1
@@ -90,10 +91,16 @@ for(col in colnames(base)){
 base = base[!(is.na(base$maxEducLevel)),]
 
 #Gráficas relevantes para las estadísticas descriptivas
-#1. Histograma de la variable Y: logaritmo de los salarios por horas
+#1. Histograma de la variable Y: salarios por horas
+histograma_salario <- ggplot(base, aes(x=y_ingLab_m_ha)) + 
+  geom_histogram(color="white",fill="darkblue") + 
+  xlab('Logaritmo del salario por hora') + ylab('Frecuencia') + 
+  theme_bw() 
+histograma_salario
 
-base$ln_sal = log(base$y_ingLab_m_ha) #Se crea el logaritmo del salario por horas para normalizar los valores de la variable.
+ggsave("Views/histograma_sal.png", width = 6, height = 4,plot=histograma_salario)
 
+#2. Histograma de la variable Y: log del salario por hora
 histograma <- ggplot(base, aes(x=ln_sal)) + 
               geom_histogram(color="white",fill="darkblue") + 
               xlab('Logaritmo del salario por hora') + ylab('Frecuencia') + 
@@ -102,7 +109,7 @@ histograma
 
 ggsave("Views/histograma.png", width = 6, height = 4,plot=histograma)
 
-#2. Gráfica de Dispersión: Edad vs. Logaritmo del Salario por hora
+#3. Gráfica de Dispersión: Edad vs. Logaritmo del Salario por hora
 # El ln(w) es relativamente homocedastico sobre la edad.
 dispersion = ggplot(base, aes(x=age, y=ln_sal)) + geom_point(color="navy") + 
              theme_bw() +
@@ -113,7 +120,7 @@ dispersion
 ggsave("Views/dispersion.png", width = 6, height = 4,plot=dispersion)
 
 
-#3. Grpafica de Dispersión 2: Edad vs. Log del Salario por hora (por sexo)
+#4. Gráfica de Dispersión 2: Edad vs. Log del Salario por hora (por sexo)
 base$sex_factor <- factor(base$sex, levels = c(1,0),
                             labels = c('Masculino', 'Femenino'))
 
@@ -129,9 +136,19 @@ dispersion2 = ggplot(base, aes(x = age, y = ln_sal)) +
   guides(color = guide_legend(title = "Sexo", title.hjust = 0.5))
 
 dispersion2
+ggsave("Views/dispersion2.png", width = 6, height = 4,plot=dispersion2)
 
+#5. Gráfico de Barras: Sexo Vs. Log del salario por hora
 
-#4. Gráfico de Barras: Edad vs. Salario Promedio
+barras1 <- ggplot(edad_salario, aes(x = Female, y = mean_sal)) +
+  geom_bar(width = 0.5, colour = "black", fill = "skyblue", stat = "identity") +
+  labs(x = "Mujer", y = "Log del Salario por hora") +
+  theme_bw() +
+  scale_y_continuous(labels = scales::dollar_format()) 
+barras1
+ggsave("Views/barras1.png", width = 6, height = 4,plot=barras1)
+
+#5. Gráfico de Barras: Edad vs. Salario Promedio
 
 #Creamos una variable categorica para la edad
 base$edad_cat <- cut(base$age, breaks = c(17, 29, 45, 59, Inf), labels = c("18-29", "30-45", "46-59", "60 o más"))
@@ -146,6 +163,7 @@ barras1 <- ggplot(edad_salario, aes(x = edad_cat, y = mean_sal)) +
   theme_bw() +
   scale_y_continuous(labels = scales::dollar_format()) 
 barras1
+ggsave("Views/barras1.png", width = 6, height = 4,plot=barras1)
 
 #MODELO: LOG DEL SALARIO VS EDAD Y EDAD AL CUADRADO 
 
