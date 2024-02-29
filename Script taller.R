@@ -33,23 +33,23 @@ importar_datos<-function(){
     
   }
   # Selección de la muestra de interés: edad >= 18 y empleado (ocu).
-  datos <- datos[datos$age >= 18 & datos$ocu == 1,]
+  datos <- datos[datos$age >= 18 & datos$ocu == 1,] #Se utiliza la variable de ocupados dado que según su definición corresponde a las personas que tienen un trabajo formal, realizan actividades independientes y han trabajado durante la semana de referencia.
   
   #retornamos el data set final
   return(datos)
 }
 
-DF<-importar_datos()
+DF<-importar_datos() 
 
-## importamos y exportamos para no volver hacer web scraping
+## importamos y exportamos para no volver hacer web scraping de manera que el código no sea tan pesado (de esta manera logramos que el proceso no sea demorado)
 write.csv(x = DF, file = "Stores/DF.csv", row.names = FALSE) 
 DF<-import("Stores/DF.csv")
 
-# Se crea una base para guardar estadisticas descriptivas:
+# Se crea una base para guardar las estadisticas descriptivas más relevantes para el trabajo:
 vars = length(colnames(DF))
 ED = data.frame('Variable' = colnames(DF), 'Missings' = rep(NA, vars), 'Media' =  rep(NA, vars), 'Desviacion Estandard' = rep(NA, vars))
 
-# Se cuentan los missings y se calcula la media y la ds de la muestra:
+# Se cuentan los missings y se calcula la media y la desviación estándar de la muestra:
 for(col in colnames(DF)){
   df = DF[,colnames(DF) == col]
   NAs = sum(is.na(df))
@@ -62,7 +62,7 @@ for(col in colnames(DF)){
 }
 
 # 1. Limpieza de datos:
-# Se eliminan las constantes y las variables sin observaciones:
+# Se eliminan las constantes (u observaciones que tienen desviación estándar igual a cero) y las variables sin observaciones (missings):
 C = ED %>% filter(Desviacion.Estandard == 0 | is.na(Desviacion.Estandard)) %>% select(Variable) %>% as.vector()
 ED = ED %>% filter(Desviacion.Estandard != 0 | !is.na(Desviacion.Estandard))
 DF = DF[!is.na(DF$y_ingLab_m_ha),]
