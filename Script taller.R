@@ -41,8 +41,12 @@ importar_datos<-function(){
 
 DF<-importar_datos() 
 
-## importamos y exportamos para no volver hacer web scraping de manera que el código no sea tan pesado (de esta manera logramos que el proceso no sea demorado)
+#Exportamos los datos deaspués del web scraping en una base de datos llamada DF.cvs para que el código sea más eficiente
 write.csv(x = DF, file = "Stores/DF.csv", row.names = FALSE) 
+
+#DESDE AQUÍ SE PUEDE COMENZAR EL SCIRPT UNA VEZ REALIZADO EL WEB SCRAPING Y YA TENIEDO EL ARCHIVO DE LA BASE GUARDADO
+#Llamamos nuestra base de datos 
+
 DF<-import("Stores/DF.csv")
 
 # Se crea una base para guardar las estadisticas descriptivas más relevantes para el trabajo:
@@ -85,10 +89,10 @@ for(col in colnames(base)){
 # Eliminar la observacion:
 base = base[!(is.na(base$maxEducLevel)),]
 
-#Gráficas y 
-#1. Histograma
+#Gráficas relevantes para las estadísticas descriptivas
+#1. Histograma de la variable Y: logaritmo de los salarios por horas
 
-base$ln_sal = log(base$y_ingLab_m_ha)
+base$ln_sal = log(base$y_ingLab_m_ha) #Se crea el logaritmo del salario por horas para normalizar los valores de la variable.
 
 histograma <- ggplot(base, aes(x=ln_sal)) + 
               geom_histogram(color="white",fill="darkblue") + 
@@ -98,8 +102,8 @@ histograma
 
 ggsave("Views/histograma.png", width = 6, height = 4,plot=histograma)
 
-#2. Dispersión
-# El ln(w) es relativamente homocedasttico sobre la edad.
+#2. Gráfica de Dispersión: Edad vs. Logaritmo del Salario por hora
+# El ln(w) es relativamente homocedastico sobre la edad.
 dispersion = ggplot(base, aes(x=age, y=ln_sal)) + geom_point(color="navy") + 
              theme_bw() +
              geom_smooth(method = 'lm',color="firebrick") +xlab('Edad')+ 
@@ -109,7 +113,7 @@ dispersion
 ggsave("Views/dispersion.png", width = 6, height = 4,plot=dispersion)
 
 
-#3. Dispersión 2
+#3. Grpafica de Dispersión 2: Edad vs. Log del Salario por hora (por sexo)
 base$sex_factor <- factor(base$sex, levels = c(1,0),
                             labels = c('Masculino', 'Femenino'))
 
@@ -127,7 +131,8 @@ dispersion2 = ggplot(base, aes(x = age, y = ln_sal)) +
 dispersion2
 
 
-#4. barras
+#4. Gráfico de Barras: Edad vs. Salario Promedio
+
 #Creamos una variable categorica para la edad
 base$edad_cat <- cut(base$age, breaks = c(17, 29, 45, 59, Inf), labels = c("18-29", "30-45", "46-59", "60 o más"))
 
@@ -142,13 +147,14 @@ barras1 <- ggplot(edad_salario, aes(x = edad_cat, y = mean_sal)) +
   scale_y_continuous(labels = scales::dollar_format()) 
 barras1
 
+#MODELO: LOG DEL SALARIO VS EDAD Y EDAD AL CUADRADO 
 
-#3. Regresión_ Age
+#3.A Regresión_ Age
 base$age_2 <- base$age^2
 modelo1 <- lm(ln_sal~age + age_2, data=base)
 stargazer(modelo1, type="text", title = "Resultados Modelo 1", out = "Views/mod1.txt")
 
-#3.b  
+#3.B  
 
 dispersion3 = ggplot(base, aes(x = age, y = ln_sal)) +
   geom_point(color='salmon') +
@@ -183,8 +189,10 @@ peakage
 # Calculo intervalo de confianza:
 boot.ci(boot.out = peakage, conf = c(0.95, 0.99), type = 'all')
 
-#4. Regresión simple: Female
-base$Female <- ifelse(base$sex == 0, 1, 0)
+#MODELO: LOG DEL SALARIO POR HORAS VS FEMALE 
+
+#4. Regresión simple: Female 
+base$Female <- ifelse(base$sex == 0, 1, 0) #cambiamos la variable sexo dado que ésta inicialmente toma el valor de 1 si la persona es hombre y 0 d.l.c para que tome el valor de 1 si la persona es mujer y 0 d.l.c y así correr el modelo con la que realmente se requiere en las instrucciones
 modelo2 <- lm(ln_sal~ Female , data=base)
 modelo2
 stargazer(modelo2, type="text", title = "Resultados Modelo 1", out = "Views/mod2.txt")
@@ -195,9 +203,6 @@ stargazer(modelo2, keep="Female", type="text", title = "Resultados Modelo 1", ou
 #creamos un ID
 base$id<-rownames(base)
 
-
-#Modelo 3.
-base$Female <- ifelse(base$sex == 0, 1, 0)
 modelo3 <- lm(ln_sal~ Female + age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
 modelo3
 stargazer(modelo3, keep="Female", type="text", title = "Resultados Modelo 3", out = "Views/mod3.txt")
@@ -236,8 +241,6 @@ wage_gap
 # Calculo intervalo de confianza:
 boot.ci(boot.out = wage_gap, conf = c(0.95, 0.99), type = 'all')
 
-
-#Datos Condicionados 
 
 #Plot of predicting income
 
