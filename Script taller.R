@@ -1,9 +1,9 @@
 #### Script problem set 1 ######
 
-#limpiar entorno
+#Realizamos inicialmente una limpieza del entorno
 rm(list = ls())
 
-#llamar librerias
+#Llamamos las librerías necesarias para la realización del trabajo 
 require(pacman)
 require(tidyverse)
 require(rvest)
@@ -15,24 +15,24 @@ require(skimr)
 require(boot)
 require(tidytable)
 
-### Funcion para importar datos
+### Función para importar datos
 importar_datos<-function(){
   
   ##Llamamos el link para el web scraping
   link_incompleto<-'https://ignaciomsarmiento.github.io/GEIH2018_sample/pages/geih_' 
   
-  ##Invocamos la tabla de la primera pagina como dataframe concatenando strings 
+  ##Invocamos la tabla de la primera pagina como dataframe (datos) concatenando strings 
   datos<-read_html(paste0(link_incompleto, 'page_',as.character(1),'.html'))  %>% 
     html_table() %>% as.data.frame()
   
-  #Relizamos un ciclo para añadir la filas de la pagina 2 a la 9 de a nuestro data set
+  #Relizamos un ciclo para añadir las filas de la página 2 a la 10 de a nuestro data set
   for (i in 2:10){
     html<-read_html(paste0(link_incompleto, 'page_',as.character(i),'.html'))  %>% 
           html_table() %>% as.data.frame()
     datos<-rbind(datos,html)
     
   }
-  # Selección de la muestra de interes: edad >= 18 y empleado (ocu).
+  # Selección de la muestra de interés: edad >= 18 y empleado (ocu).
   datos <- datos[datos$age >= 18 & datos$ocu == 1,]
   
   #retornamos el data set final
