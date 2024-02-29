@@ -196,12 +196,10 @@ stargazer(modelo2, keep="Female", type="text", title = "Resultados Modelo 1", ou
 base$id<-rownames(base)
 
 
-
 #Modelo 3.
 base$Female <- ifelse(base$sex == 0, 1, 0)
 modelo3 <- lm(ln_sal~ Female + age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
 modelo3
-stargazer(modelo3, type="text", title = "Resultados Modelo 3", out = "Views/mod3.txt")
 stargazer(modelo3, keep="Female", type="text", title = "Resultados Modelo 3", out = "Views/mod3.txt")
 
 
@@ -226,13 +224,13 @@ FWL_boots <-function(data,index){
   colnames(FWL)= c("yprima", "xprima")
   fwlmod = lm(yprima ~ xprima, data = FWL)
   
-  coefs = fwlmod$coefficients[1]
+  coefs = fwlmod$coefficients[2]
 
   return(coefs)
 }
 
 # Se hace la estimacion por bootstrap:
-wage_gap = boot(data=base, FWL_boots, R=nrow(base))
+wage_gap = boot(data=base, FWL_boots, R=5000)
 wage_gap
 
 # Calculo intervalo de confianza:
@@ -241,15 +239,17 @@ boot.ci(boot.out = wage_gap, conf = c(0.95, 0.99), type = 'all')
 
 #Datos Condicionados 
 
-#Plot
-dispersion4 = ggplot(base, aes(x = age, y = ln_sal)) +
-  geom_point(color='salmon') +
-  theme_bw() +
-  geom_smooth(color = "black", method = "lm", formula = y ~ poly(x, 2) + Female + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm) +
-  xlab("Edad") +
-  ylab("Logaritmo del salario por hora") 
+#Plot of predicting income
 
-dispersion4
+base_female<- base %>% filter(Female==1)
+base_male<-base %>% filter(Female==0)
+
+predict_plot<-ggplot() + 
+              geom_smooth(data=base_male, aes(x=age, y=ln_sal), color='steelblue', method = "lm", formula = y ~ poly(x, 2)) + 
+              geom_smooth(data=base_female, aes(x=age, y=ln_sal), color='coral2', method = "lm", formula = y ~ poly(x, 2)) + 
+              theme_bw() +
+              labs(x = "Edad en años", y = "Logaritmo del salario")
+predict_plot
 
 #5.Predicting Earnings 
 set.seed(10101)  
