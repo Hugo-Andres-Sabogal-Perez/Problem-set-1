@@ -71,36 +71,27 @@ C = ED %>% filter(Desviacion.Estandard == 0 | is.na(Desviacion.Estandard)) %>% s
 ED = ED %>% filter(Desviacion.Estandard != 0 | !is.na(Desviacion.Estandard))
 DF = DF[!is.na(DF$y_ingLab_m_ha),]
 DF = DF %>% select(-C$Variable)
+DF = DF[DF$age!=78,]
+DF=DF[!(rownames(DF)%in%c("5733", "579")),]
 
 # 2. Estadisticas descriptivas:
+base= DF %>% select(age,oficio, formal, maxEducLevel, orden, p7040, sex, sizeFirm, y_ingLab_m_ha, hoursWorkUsual)
 base$ln_sal = log(base$y_ingLab_m_ha) #Se crea el logaritmo del salario por horas para normalizar los valores de la variable.
-base= DF %>% select(age,oficio, formal, maxEducLevel, orden, p7040, sex, sizeFirm, ln_sal, hoursWorkUsual)
 stargazer(base, type= "text", summary=T, title = "Estadisticas Descriptivas",out = "Views/esta_des.txt")
 
-# Missings de la sub muestra:1
-vars = length(colnames(base))
-missingb = data.frame('Variable' = colnames(base), 'Missings' = rep(NA, vars))
-for(col in colnames(base)){
-  df = base[,colnames(base) == col]
-  NAs = sum(is.na(df))
 
-  missingb[missingb$Variable == col, 2] = NAs
-}
-
-# Eliminar la observacion:
-base = base[!(is.na(base$maxEducLevel)),]
 
 #Gráficas relevantes para las estadísticas descriptivas
 #1. Histograma de la variable Y: salarios por horas
 histograma_salario <- ggplot(base, aes(x=y_ingLab_m_ha)) + 
   geom_histogram(color="white",fill="darkblue") + 
-  xlab('Logaritmo del salario por hora') + ylab('Frecuencia') + 
+  xlab('Salario por hora') + ylab('Frecuencia') + 
   theme_bw() 
 histograma_salario
 
 ggsave("Views/histograma_sal.png", width = 6, height = 4,plot=histograma_salario)
 
-#2. Histograma de la variable Y: log del salario por hora
+#2. Histograma de la variable Y: log del salario por hora (transformación)
 histograma <- ggplot(base, aes(x=ln_sal)) + 
               geom_histogram(color="white",fill="darkblue") + 
               xlab('Logaritmo del salario por hora') + ylab('Frecuencia') + 
@@ -120,69 +111,36 @@ dispersion
 ggsave("Views/dispersion.png", width = 6, height = 4,plot=dispersion)
 
 
-#4. Gráfica de Dispersión 2: Edad vs. Log del Salario por hora (por sexo)
-base$sex_factor <- factor(base$sex, levels = c(1,0),
-                            labels = c('Masculino', 'Femenino'))
-
-base$sex_factor<-factor(base$sex_factor)
-
-dispersion2 = ggplot(base, aes(x = age, y = ln_sal)) +
-  geom_point(aes(color = sex_factor)) +
-  theme_bw() +
-  geom_smooth(color = "black", method = "lm", formula = y ~ poly(x, 2)) +
-  xlab("Edad") +
-  ylab("Logaritmo del salario por hora") +
-  scale_color_manual(values = c("Masculino" = "skyblue", "Femenino" ="maroon" )) +
-  guides(color = guide_legend(title = "Sexo", title.hjust = 0.5))
-
-dispersion2
-ggsave("Views/dispersion2.png", width = 6, height = 4,plot=dispersion2)
-
-#5. Gráfico de Barras: Sexo Vs. Log del salario por hora
-
-barras1 <- ggplot(edad_salario, aes(x = Female, y = mean_sal)) +
-  geom_bar(width = 0.5, colour = "black", fill = "skyblue", stat = "identity") +
-  labs(x = "Mujer", y = "Log del Salario por hora") +
+#4. Gráfico de Barras: Sexo Vs. Salario Promedio
+Salario_sex <- base %>% group_by(sex_factor)  %>% 
+  summarize(mean_sal_sex=mean(y_ingLab_m_ha))
+barras1 <- ggplot(Salario_sex, aes(x = sex_factor, y = mean_sal_sex)) +
+  geom_bar(width = 0.5, colour = "skyblue", fill = "skyblue", stat = "identity") +
+  labs(x = "Sexo", y = "Log del Salario por hora") +
   theme_bw() +
   scale_y_continuous(labels = scales::dollar_format()) 
 barras1
 ggsave("Views/barras1.png", width = 6, height = 4,plot=barras1)
 
-#5. Gráfico de Barras: Edad vs. Salario Promedio
+#6. Gráfico de Barras: Edad vs. Salario Promedio
 
-#Creamos una variable categorica para la edad
-base$edad_cat <- cut(base$age, breaks = c(17, 29, 45, 59, Inf), labels = c("18-29", "30-45", "46-59", "60 o más"))
-
-edad_salario<-base %>% group_by(edad_cat) %>% 
+Edad <-base %>% group_by(age) %>% 
               summarize(mean_sal=mean(y_ingLab_m_ha))
 
-
-barras1 <- ggplot(edad_salario, aes(x = edad_cat, y = mean_sal)) +
-  geom_bar(width = 0.5, colour = "black", fill = "skyblue", stat = "identity") +
-  labs(x = "Edad en años", y = "Salario promedio") +
+barras2 <- ggplot(Edad, aes(x = age, y = mean_sal)) +
+  geom_bar(width = 0.5, colour ="skyblue", fill = "skyblue", stat = "identity") +
+  labs(x = "Edad", y = "Salario promedio") +
   theme_bw() +
   scale_y_continuous(labels = scales::dollar_format()) 
-barras1
-ggsave("Views/barras1.png", width = 6, height = 4,plot=barras1)
+barras2
+ggsave("Views/barras2.png", width = 6, height = 4,plot=barras2)
 
-#MODELO: LOG DEL SALARIO VS EDAD Y EDAD AL CUADRADO 
+#3  LOG DEL SALARIO VS EDAD Y EDAD AL CUADRADO 
 
-#3.A Regresión_ Age
+#A Regresión_ Age
 base$age_2 <- base$age^2
 modelo1 <- lm(ln_sal~age + age_2, data=base)
-stargazer(modelo1, type="text", title = "Resultados Modelo 1", out = "Views/mod1.txt")
-
-#3.B  
-
-dispersion3 = ggplot(base, aes(x = age, y = ln_sal)) +
-  geom_point(color='salmon') +
-  theme_bw() +
-  geom_smooth(color = "black", method = "lm", formula = y ~ poly(x, 2)) +
-  xlab("Edad") +
-  ylab("Logaritmo del salario por hora") 
-
-dispersion3
-
+stargazer(modelo1, type="latex", title = "Resultados Modelo 1", out = "Views/mod1.txt")
 
 # Intervalo de confianza con boostrap:
 boostage <-function(data,index){
@@ -203,42 +161,45 @@ boostage <-function(data,index){
 # Se hace la estimacion por bootstrap:
 peakage = boot(data=base, boostage, R=nrow(base))
 peakage
-
 # Calculo intervalo de confianza:
 boot.ci(boot.out = peakage, conf = c(0.95, 0.99), type = 'all')
+#3.PLOT 
 
-#MODELO: LOG DEL SALARIO POR HORAS VS FEMALE 
+dispersion2 = ggplot(base, aes(x = age, y = ln_sal)) +
+  geom_point(color = "salmon") +
+  theme_bw() +
+  geom_smooth(color = "black", method = "lm", formula = y ~ poly(x, 2)) +
+  xlab("Edad") +
+  ylab("Logaritmo del salario por hora") 
 
-#4. Regresión simple: Female 
+dispersion2
+ggsave("Views/dispersion2.png", width = 6, height = 4,plot=dispersion2)
+
+#PUNTO 4
+# A. Regresión simple: Female 
 base$Female <- ifelse(base$sex == 0, 1, 0) #cambiamos la variable sexo dado que ésta inicialmente toma el valor de 1 si la persona es hombre y 0 d.l.c para que tome el valor de 1 si la persona es mujer y 0 d.l.c y así correr el modelo con la que realmente se requiere en las instrucciones
 modelo2 <- lm(ln_sal~ Female , data=base)
-modelo2
-stargazer(modelo2, type="text", title = "Resultados Modelo 1", out = "Views/mod2.txt")
-stargazer(modelo2, keep="Female", type="text", title = "Resultados Modelo 1", out = "Views/mod2.txt")
+stargazer(modelo2, keep="Female", type="latex", title = "Resultados Modelo 2", out = "Views/mod2.txt")
 
-#4. Regresión multiple (controles): Female
-
+# Regresión multiple (controles): Female
+#Inicialmente vamos a volver P7040 de Binaria a Dummy
+base$p7040= base$p7040-1
 #creamos un ID
 base$id<-rownames(base)
 
-modelo3 <- lm(ln_sal~ Female + age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
-modelo3
-stargazer(modelo3, keep="Female", type="text", title = "Resultados Modelo 3", out = "Views/mod3.txt")
-
-
 # FWL simple:
-ypmod = lm(ln_sal ~ age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
-xpmod = lm(Female ~ age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data=base)
+ypmod = lm(ln_sal ~ age + factor(maxEducLevel) + formal + factor(oficio) + hoursWorkUsual + p7040 + sizeFirm, data=base)
+xpmod = lm(Female ~ age + factor(maxEducLevel) + formal + factor(oficio) + hoursWorkUsual + p7040 + sizeFirm, data=base)
 
 FWL = data.frame('yprima' = ypmod["residuals"], 'xprima' = xpmod["residuals"])
 
 fwlmod = lm(residuals ~ residuals.1, data = FWL)
-stargazer(fwlmod, type="text", title = "Resultados FWL Simple", out = "Views/mod2.txt")
+stargazer(fwlmod, type="latex", title = "Resultados FWL Simple", out = "Views/modfwl.txt")
 
 #FWL con Bootstrap:
 FWL_boots <-function(data,index){
-  ypmod = lm(ln_sal ~ age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm, data, subset=index)
-  xpmod = lm(Female ~ age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm,data, subset=index)
+  ypmod = lm(ln_sal ~ age + factor(maxEducLevel) + formal + factor(oficio) + hoursWorkUsual + p7040 + sizeFirm, data, subset=index)
+  xpmod = lm(Female ~ age + factor(maxEducLevel) + formal + factor(oficio) + hoursWorkUsual + p7040 + sizeFirm,data, subset=index)
   
   yprima = ypmod["residuals"]
   xprima = xpmod["residuals"]
@@ -248,14 +209,13 @@ FWL_boots <-function(data,index){
   fwlmod = lm(yprima ~ xprima, data = FWL)
   
   coefs = fwlmod$coefficients[2]
-
+  
   return(coefs)
 }
-
 # Se hace la estimacion por bootstrap:
-wage_gap = boot(data=base, FWL_boots, R=5000)
+wage_gap = boot(data=base, FWL_boots, R=100)
 wage_gap
-
+#HUGO pon stargazer a mano 
 # Calculo intervalo de confianza:
 boot.ci(boot.out = wage_gap, conf = c(0.95, 0.99), type = 'all')
 
@@ -269,7 +229,7 @@ predict_plot<-ggplot() +
               geom_smooth(data=base_male, aes(x=age, y=ln_sal), color='steelblue', method = "lm", formula = y ~ poly(x, 2)) + 
               geom_smooth(data=base_female, aes(x=age, y=ln_sal), color='coral2', method = "lm", formula = y ~ poly(x, 2)) + 
               theme_bw() +
-              labs(x = "Edad en años", y = "Logaritmo del salario")
+              labs(x = "Edad en años", y = "Logaritmo del salario") +
 predict_plot
 
 #5.Predicting Earnings 
@@ -294,7 +254,7 @@ score1a<- RMSE(predictions, testing$ln_sal )
 score1a
 
 # 2. 
-form_2<- ln_sal ~ Female + age + maxEducLevel + formal + oficio + hoursWorkUsual + p7040 + sizeFirm
+form_2<- ln_sal ~ Female + age + factor(maxEducLevel) + formal + factor(oficio) + hoursWorkUsual + p7040 + sizeFirm
 
 modelo2a <- lm(form_2,
                data = training )
@@ -313,9 +273,9 @@ score3a
 #4. 
 form_4 <- ln_sal ~ age + age_2 +
   poly(age,3,raw=TRUE):Female  + 
-  poly(age,3,raw=TRUE):maxEducLevel  +
+  poly(age,3,raw=TRUE):factor(maxEducLevel)  +
   poly(age,3,raw=TRUE):formal +
-  poly(age,3,raw=TRUE):oficio +
+  poly(age,3,raw=TRUE):factor(oficio) +
   poly(age,3,raw=TRUE):hoursWorkUsual + 
   poly(age,3,raw=TRUE):p7040 +
   poly(age,3,raw=TRUE):sizeFirm 
