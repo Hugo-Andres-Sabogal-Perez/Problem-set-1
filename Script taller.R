@@ -82,7 +82,6 @@ base$ln_sal = log(base$y_ingLab_m_ha) #Se crea el logaritmo del salario por hora
 stargazer(base, type= "text", summary=T, title = "Estadisticas Descriptivas",out = "Views/esta_des.txt")
 
 
-
 #Gráficas relevantes para las estadísticas descriptivas
 #1. Histograma de la variable Y: salarios por horas
 histograma_salario <- ggplot(base, aes(x=y_ingLab_m_ha)) + 
@@ -114,6 +113,8 @@ ggsave("Views/dispersion.png", width = 6, height = 4,plot=dispersion)
 
 
 #4. Gráfico de Barras: Sexo Vs. Salario Promedio
+base$sex_factor <- factor(base$sex, levels = c(1,0),
+                          labels = c('Masculino', 'Femenino'))
 Salario_sex <- base %>% group_by(sex_factor)  %>% 
   summarize(mean_sal_sex=mean(y_ingLab_m_ha))
 barras1 <- ggplot(Salario_sex, aes(x = sex_factor, y = mean_sal_sex)) +
