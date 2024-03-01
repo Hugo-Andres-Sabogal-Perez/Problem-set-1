@@ -71,6 +71,7 @@ for(col in colnames(DF)){
 # Se eliminan las constantes (u observaciones que tienen desviación estándar igual a cero) y las variables sin observaciones (missings):
 C = ED %>% filter(Desviacion.Estandard == 0 | is.na(Desviacion.Estandard)) %>% select(Variable) %>% as.vector()
 ED = ED %>% filter(Desviacion.Estandard != 0 | !is.na(Desviacion.Estandard))
+ED = ED %>% filter(Variable != 'cuentaPropia')
 DF = DF[!is.na(DF$y_ingLab_m_ha),]
 DF = DF %>% select(-C$Variable)
 DF = DF[DF$age!=78,]
@@ -300,23 +301,27 @@ score4a
 #5.
 # Se admitirán 20% de datos faltantes como máximo:
 porcentaje_obs = nrow(DF)*0.2
-DF= DF %>% select(ED[ED$Missings<porcentaje_obs, 1]) 
+Miss = ED[ED$Missings<porcentaje_obs, 1]
+DF= DF %>% select(Miss$Variable)
 ED = ED[ED$Missings<porcentaje_obs,]
+
+# Se crea logaritmo del salario:
+DF$lnw = log(DF$y_ingLab_m_ha)
 
 # Clasificación por tipo de variable:
 ED$Tipo = rep(NA, nrow(ED))
 ordinales = c('estrato1','age', 'p6100','p6210', 'p6210s1',  "oficio", "relab", "p6870", "fex_dpto","hoursWorkUsual", 
               "fweight", "maxEducLevel", "regSalud",   "totalHoursWorked", "sizeFirm")
-categoricas = c('mes', 'p6050', "p6240", "p6920")
+categoricas = c('mes', 'p6050', "p6240", "p6920", "cotPension", 'p6090')
 binarias = c('sex',"college", "formal", "informal", "microEmpresa")
-binar12 = c('p6090',"p7040","p7090","p7495","p7505", "cotPension")
+binar12 = c("p7040","p7090","p7495","p7505")
 continuas = c('p6426', "p6500", "p6510s1", "p6545s1", "p6580s1", "p6585s1a1", "p6585s2a1", "p6585s3a1", "p6585s4a1", 
               "p6590s1", "p6600s1", "p6610s1", "p6620s1", "p6630s1a1", "p6630s2a1", "p6630s3a1", "p6630s4a1","p6630s6a1",
               "p7070", "p7500s1a1", "p7500s2a1", "p7500s3a1", "p7510s1a1", "p7510s2a1", "p7510s3a1", "p7510s5a1","p7510s6a1",
               "p7510s7a1", "impa", "isa", "ie", "iof1", "iof2", "iof3h", "iof3i","iof6", "ingtotob", "ingtot","fex_c",
-              "y_salary_m", "y_salary_m_hu", "y_ingLab_m", "y_ingLab_m_ha", "y_total_m", "y_total_m_ha")
+              "y_salary_m", "y_salary_m_hu", "y_ingLab_m", "y_total_m", "y_total_m_ha")
 rem = c("p6510","p6545","p6580","p6585s1","p6585s2", "p6585s3", "p6585s4","p6590", "p6600", "p6610", "p6620", "p6630s1",
-        "p6630s2", "p6630s3", "p6630s4", "p6630s6", 'directorio', 'secuencia_p', 'orden')                                                  
+        "p6630s2", "p6630s3", "p6630s4", "p6630s6", 'directorio', 'secuencia_p', 'orden', "y_ingLab_m_ha")                                                  
 
 DF = DF %>% select(-rem)
 ED = ED[!(ED$Variable %in% rem),]                                           
@@ -324,14 +329,13 @@ ED = ED %>% mutate(Tipo = case_when(Variable %in% continuas ~ 'continua',
                                     Variable %in% ordinales ~ 'ordi',
                                     Variable %in% categoricas ~ 'cat',
                                     Variable %in% c(binarias, binar12) ~ 'dummy'))                                 
-                                       
-                   
+
 # Se estandarizan los datos ordinales y contunuos:
-DFstandard = DF %>% mutate_at(c(continuas, ordinales), ~(scale(.) %>% as.vector))
+DF = DF %>% mutate_at(c(continuas, ordinales), ~(scale(.) %>% as.vector))
 
 # Se crean dummys para las categoricas:
-DFstandard = get_dummies(
-  DFstandard,
+DF = get_dummies(
+  DF,
   cols = categoricas,
   prefix = TRUE,
   prefix_sep = "_",
@@ -343,7 +347,7 @@ ED = ED[!(ED$Variable %in% categoricas),]
 
 # Se limpian las binarias:
 resta1 = function(x){
-  y = x+1
+  y = x-1
   returnValue(y)
 }
 DF = DF %>% mutate_at(binar12, ~ (resta1(.)))
@@ -370,33 +374,157 @@ ED = ED[!(ED$Variable %in% r),]
 # k = 5
 
 DFimp = kNN(DF)
-DFimp = DFimp[,1:87]
+DFimp = DFimp[,1:91]
+
+# Test y train:
+set.seed(10101)  
+
+inTrain <- createDataPartition(
+  y = DFimp$lnw,  ## the outcome data are needed
+  p = .70, ## The percentage of data in the
+  list = FALSE
+)
+
+training <- DFimp[ inTrain,]
+testing  <- DFimp[-inTrain,]
 
 # Formula general para la selección de variables:
-varspoly = ED$Variable[ED$Tipo == 'continua'][1:35]
+varspoly = ED$Variable[ED$Tipo == 'continua']
 varsum = ED$Variable[ED$Tipo != 'continua']
-maxmodel = as.formula(paste("y_ingLab_m_ha ~", paste(varsum, collapse = '+'), '+',paste("poly(", varspoly , ", 2, raw=TRUE)", collapse = " + ")))
+varcat = colnames(DFimp)[57:91]
+maxmodel = as.formula(paste("lnw ~", paste(varsum, collapse = '+'), '+',paste(varcat, collapse = '+'),'+',paste("poly(", varspoly , ", 2, raw=TRUE)", collapse = " + ")))
 
 # Modelo Forward Selection:
-
 folds = sample(rep (1:10, length = nrow(DFimp)))
 crossval = matrix (NA, 10, 50, dimnames = list (NULL , paste (1:50)))
 for (j in 1:10) {
   fit = regsubsets(maxmodel, data = DFimp[folds != j,], nvmax = 50, method = "forward") 
+  test = model.matrix(maxmodel, data = DFimp[folds == j,]) 
   for (i in 1:50) {
-    pred = predict(fit, DFimp[folds == j,], id = i)
-    crossval[j, i] = mean((DFimp$y_ingLab_m_ha[folds == j] - pred)^2)
+    coefi = coef(fit, id = i)
+    pred = test[,names(coefi)]%*%coefi
+    crossval[j, i] = mean((DFimp$lnw[folds == j] - pred)^2)
   }
 }
+
+# Se calcula la raiz del error cuadratico medio:
+errforward = apply (crossval , 2, mean)
+
+which.min(errforward)[[1]]
+
+#Re run again the forward algorithm  get the actual  24 variables in the selected model
+forward_model = regsubsets(maxmodel, ## formula
+                            data = training, ## data frame full data
+                            nvmax = which.min(errforward)[[1]], 
+                            method = "forward") ## run only the first 9 models
+
+forward_model_names = names(coef(forward_model, id=which.min(errforward)[[1]]))
+
+forward_model_names
+score5 = errforward[which.min(errforward)[[1]]]
 
 # Modelo Backward Selection:
 for (j in 1:10) {
-  fit = regsubsets(maxmodel, data = DFimp[folds != j,], nvmax = 50, method = "forward") 
+  fit = regsubsets(maxmodel, data = DFimp[folds != j,], nvmax = 50, method = "backward") 
+  test = model.matrix(maxmodel, data = DFimp[folds == j,])
   for (i in 1:50) {
-    pred = predict(fit, DFimp[folds == j,], id = i)
-    crossval[j, i] = mean((DFimp$y_ingLab_m_ha[folds == j] - pred)^2)
+    coefi = coef(fit, id = i)
+    pred = test[,names(coefi)]%*%coefi
+    crossval[j, i] = mean((DFimp$lnw[folds == j] - pred)^2)
   }
 }
 
+# Se calcula la raiz del error cuadratico medio:
+errbackward = apply (crossval , 2, mean)
+
+which.min(errbackward)[[1]]
+
+#Re run again the forward algorithm  get the actual 38 variables in the selected model
+backward_model = regsubsets(maxmodel, ## formula
+                            data = DFimp, ## data frame full data
+                            nvmax = which.min(errbackward)[[1]], 
+                            method = "backward") ## run only the first 9 models
+
+backward_model_names = names(coef(backward_model, id=which.min (errbackward)[[1]]))
+
+backward_model_names
+
+score6 = errbackward[which.min(errbackward)[[1]]]
+
 # Net:
+# Creo la matriz de predictores:
+Xsmall = as.matrix(DFimp[,-c('lnw')])
+
+# Creo el vector de la variable dependiente:
+y = as.matrix(DFimp[,'lnw'])
+
+# Esymacion por net:
+ENet = cv.glmnet(
+  x = Xsmall,
+  y = y,
+  alpha = 0.5
+)
+
+lamda = ENet$lambda.min
+
+net_model = glmnet(
+  x = Xsmall,
+  y = y,
+  lambda = lamda,
+  alpha = 0.5
+)
+
+score7 = min(ENet$cvm)
+
+# Se crea un data frame con los errores de cada modelo:
+ERR = data.frame('MODELO' = rep(NA, 7), 'MSE(Muestral)' =  rep(NA, 7))
+ERR[1,] = c('Modelo 1', score1a)
+ERR[2,] = c('Modelo 2', score2a)
+ERR[3,] = c('Modelo 3', score3a)
+ERR[4,] = c('Modelo 4', score4a)
+ERR[5,] = c('Modelo 5', score5)
+ERR[6,] = c('Modelo 6', score6)
+ERR[7,] = c('Modelo 7', score7)
+
+stargazer(ERR, summary = F, type = 'text')
+
+# LOOCV:
+formback = as.formula(lnw ~ sex + p6210 + 
+                        oficio + p7505 + college + 
+                        totalHoursWorked + sizeFirm + p6050_2 + 
+                        p6240_3 + p6240_4 + p6920_2 +
+                        p6090_2 + p6585s1a1 + p6585s1a1^2 +
+                        p6585s2a1 + p6585s3a1 + p6585s4a1 +
+                        p6585s4a1^2 + p6600s1^2 + p6610s1 +
+                        p6620s1 + p6630s3a1^2 + p6630s4a1^2 +
+                        p6630s6a1 + p6630s6a1^2 + p7500s1a1 +
+                        p7500s1a1^2 + p7500s2a1^2 + p7500s3a1^2 +
+                        p7510s3a1 + ingtotob^2 + ingtot +
+                        ingtot^2 + y_salary_m^2 + p6920_3 +
+                        cotPension_3 + iof3h + ingtotob)
+formfor = as.formula(lnw ~ sex + p6210 + 
+                       oficio + college + totalHoursWorked + 
+                       formal + sizeFirm + p6240_3 + 
+                       p6240_4 + p6585s1a1 + p6585s2a1 +
+                       p6585s4a1 + p6610s1 + p6630s2a1^2 +
+                       p6630s6a1 + p6630s6a1^2 + iof3i^2 +
+                       ingtotob^2 + ingtot + p6920_3 +
+                       cotPension_3 + p6630s3a1^2 + p6630s4a1^2 +
+                        p6630s6a1 + p6090_9 + iof3h +
+                       ingtotob)
+loocv = trainControl(method = "LOOCV")
+
+# LOOCV para el modelo de forward:
+modelfw = train(formfor,
+                  data = DFimp,
+                  method = 'lm', 
+                  trControl= loocv)
+scorefw = RMSE(modelfw$pred$pred, DFimp$lnw)
+
+# LOOCV para del back:
+modelbw = train(formback,
+                data = DFimp,
+                method = 'lm', 
+                trControl= loocv)
+scorebw = RMSE(modelbw$pred$pred, DFimp$lnw)
 
