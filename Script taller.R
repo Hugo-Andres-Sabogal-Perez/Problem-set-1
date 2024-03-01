@@ -380,4 +380,14 @@ for (j in 1:10) {
   }
 }
 
+# Modelo Backward Selection:
+for (j in 1:10) {
+  fit = regsubsets(maxmodel, data = DFimp[folds != j,], nvmax = 50, method = "forward") 
+  for (i in 1:50) {
+    pred = predict(fit, DFimp[folds == j,], id = i)
+    crossval[j, i] = mean((DFimp$y_ingLab_m_ha[folds == j] - pred)^2)
+  }
+}
+
+# Net:
 
