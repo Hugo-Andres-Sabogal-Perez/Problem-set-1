@@ -14,6 +14,8 @@ require(gridExtra)
 require(skimr)
 require(boot)
 require(tidytable)
+require(VIM)
+require(leaps)
 
 ### Función para importar datos
 importar_datos<-function(){
@@ -306,6 +308,7 @@ continuas = c('p6426', "p6500", "p6510s1", "p6545s1", "p6580s1", "p6585s1a1", "p
 rem = c("p6510","p6545","p6580","p6585s1","p6585s2", "p6585s3", "p6585s4","p6590", "p6600", "p6610", "p6620", "p6630s1",
         "p6630s2", "p6630s3", "p6630s4", "p6630s6", 'directorio', 'secuencia_p', 'orden')                                                  
 
+DF = DF %>% select(-rem)
 ED = ED[!(ED$Variable %in% rem),]                                           
 ED = ED %>% mutate(Tipo = case_when(Variable %in% continuas ~ 'continua',
                                     Variable %in% ordinales ~ 'ordi',
@@ -325,8 +328,55 @@ DFstandard = get_dummies(
   drop_first = FALSE,
   dummify_na = TRUE)
 
-# Se limpian las binarias:
-DFstandard = DFstandard %>% mutate_at(binar12, ~  )
+DF = DF %>% select(-categoricas)
+ED = ED[!(ED$Variable %in% categoricas),]
 
+# Se limpian las binarias:
+resta1 = function(x){
+  y = x+1
+  returnValue(y)
+}
+DF = DF %>% mutate_at(binar12, ~ (resta1(.)))
+
+# Se escogen variables que no tengan covarianza 1 con otras:
+Corr = as.data.frame(cor(DF, use = 'complete.obs'))
+
+ED$Corr = rep(NA, nrow(ED))
+for(var in rownames(Corr)){
+  COR = Corr %>% select(var)
+  names = colnames(Corr)[abs(COR) > 0.999]
+  names = names[!is.na(names)]
+  ED[ED$Variable == var,6] = toString(names)
+}
+
+# Variables a descartar:
+r = c('y_total_m', 'y_total_m_ha', 'y_ingLab_m', 'p6500', 'informal', 'p6100', 'fex_c', 'fex_dpto', 
+      'fweight', 'iof6', 'iof2', 'iof1', 'p7070')
+
+DF = DF %>% select(-r)
+ED = ED[!(ED$Variable %in% r),]
+
+# Imputación de variables por knn:
+# k = 5
+
+DFimp = kNN(DF)
+DFimp = DFimp[,1:87]
+
+# Formula general para la selección de variables:
+varspoly = ED$Variable[ED$Tipo == 'continua'][1:35]
+varsum = ED$Variable[ED$Tipo != 'continua']
+maxmodel = as.formula(paste("y_ingLab_m_ha ~", paste(varsum, collapse = '+'), '+',paste("poly(", varspoly , ", 2, raw=TRUE)", collapse = " + ")))
+
+# Modelo Forward Selection:
+
+folds = sample(rep (1:10, length = nrow(DFimp)))
+crossval = matrix (NA, 10, 50, dimnames = list (NULL , paste (1:50)))
+for (j in 1:10) {
+  fit = regsubsets(maxmodel, data = DFimp[folds != j,], nvmax = 50, method = "forward") 
+  for (i in 1:50) {
+    pred = predict(fit, DFimp[folds == j,], id = i)
+    crossval[j, i] = mean((DFimp$y_ingLab_m_ha[folds == j] - pred)^2)
+  }
+}
 
 
