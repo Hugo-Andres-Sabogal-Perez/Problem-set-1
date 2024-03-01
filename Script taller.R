@@ -220,17 +220,42 @@ FWL_boots <-function(data,index){
   return(coefs)
 }
 # Se hace la estimacion por bootstrap:
-wage_gap = boot(data=base, FWL_boots, R=100)
+wage_gap = boot(data=base, FWL_boots, R=5000)
 wage_gap
 #HUGO pon stargazer a mano 
 # Calculo intervalo de confianza:
-boot.ci(boot.out = wage_gap, conf = c(0.95, 0.99), type = 'all')
+boot.ci(boot.out = wage_gap, conf = c(0.95, 0.99), type = 'percentil')
 
+#Hallando los peakages por género
+base_female<- base %>% filter(Female==1)
+base_male<-base %>% filter(Female==0)
+
+boostage <-function(data,index){
+  
+  f = lm(ln_sal~age + age_2 + factor(maxEducLevel) + formal + factor(oficio) + hoursWorkUsual + p7040 + sizeFirm, data, subset = index)
+  
+  coefs = f$coefficients
+  
+  b2 = coefs[2] 
+  b3 = coefs[3] 
+  
+  page = -b2/(2*b3)
+  
+  
+  return(page)
+}
+
+# Se hace la estimacion por bootstrap:
+peakage_female = boot(data=base_female, boostage, R=5000)
+peakage_female
+peakage_male = boot(data=base_male, boostage, R=5000)
+peakage_male
+# Calculo intervalo de confianza:
+boot.ci(boot.out = peakage, conf = c(0.95, 0.99), type = 'all')
 
 #Plot of predicting income
 
-base_female<- base %>% filter(Female==1)
-base_male<-base %>% filter(Female==0)
+
 
 # Try running your ggplot code
 predict_plot <- ggplot() + 

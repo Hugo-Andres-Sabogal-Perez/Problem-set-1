@@ -1,18 +1,18 @@
 
-Resultados Modelo 1
+Resultados Modelo 2
 ===============================================
                         Dependent variable:    
                     ---------------------------
                               ln_sal           
 -----------------------------------------------
-Female                       -0.045***         
-                              (0.015)          
+Female                      -0.04507***        
+                             (0.01460)         
                                                
 -----------------------------------------------
-Observations                   9,891           
-R2                             0.001           
-Adjusted R2                    0.001           
-Residual Std. Error      0.727 (df = 9889)     
-F Statistic           9.354*** (df = 1; 9889)  
+Observations                   9,889           
+R2                            0.00096          
+Adjusted R2                   0.00086          
+Residual Std. Error     0.72591 (df = 9887)    
+F Statistic          9.53032*** (df = 1; 9887) 
 ===============================================
 Note:               *p<0.1; **p<0.05; ***p<0.01
