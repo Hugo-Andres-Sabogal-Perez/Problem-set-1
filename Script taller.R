@@ -501,7 +501,7 @@ formback = as.formula(lnw ~ sex + p6210 +
                         p7500s1a1^2 + p7500s2a1^2 + p7500s3a1^2 +
                         p7510s3a1 + ingtotob^2 + ingtot +
                         ingtot^2 + y_salary_m^2 + p6920_3 +
-                        cotPension_3 + iof3h + ingtotob)
+                        iof3h + ingtotob)
 formfor = as.formula(lnw ~ sex + p6210 + 
                        oficio + college + totalHoursWorked + 
                        formal + sizeFirm + p6240_3 + 
@@ -509,8 +509,8 @@ formfor = as.formula(lnw ~ sex + p6210 +
                        p6585s4a1 + p6610s1 + p6630s2a1^2 +
                        p6630s6a1 + p6630s6a1^2 + iof3i^2 +
                        ingtotob^2 + ingtot + p6920_3 +
-                       cotPension_3 + p6630s3a1^2 + p6630s4a1^2 +
-                        p6630s6a1 + p6090_9 + iof3h +
+                       p6630s3a1^2 + p6630s4a1^2 +
+                       p6630s6a1 + p6090_9 + iof3h +
                        ingtotob)
 loocv = trainControl(method = "LOOCV")
 
