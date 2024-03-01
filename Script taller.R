@@ -90,7 +90,7 @@ histograma_salario <- ggplot(base, aes(x=y_ingLab_m_ha)) +
   theme_bw() 
 histograma_salario
 
-ggsave("Views/histograma_sal.png", width = 6, height = 4,plot=histograma_salario)
+ggsave("Views/histograma_sal.pdf", width = 6, height = 4,plot=histograma_salario)
 
 #2. Histograma de la variable Y: log del salario por hora (transformación)
 histograma <- ggplot(base, aes(x=ln_sal)) + 
@@ -99,7 +99,7 @@ histograma <- ggplot(base, aes(x=ln_sal)) +
               theme_bw() 
 histograma
 
-ggsave("Views/histograma.png", width = 6, height = 4,plot=histograma)
+ggsave("Views/histograma.pdf", width = 6, height = 4,plot=histograma)
 
 #3. Gráfica de Dispersión: Edad vs. Logaritmo del Salario por hora
 # El ln(w) es relativamente homocedastico sobre la edad.
@@ -109,21 +109,24 @@ dispersion = ggplot(base, aes(x=age, y=ln_sal)) + geom_point(color="navy") +
              ylab('Logaritmo del salario por hora')
 dispersion
 
-ggsave("Views/dispersion.png", width = 6, height = 4,plot=dispersion)
+ggsave("Views/dispersion.pdf", width = 6, height = 4,plot=dispersion)
 
 
 #4. Gráfico de Barras: Sexo Vs. Salario Promedio
 base$sex_factor <- factor(base$sex, levels = c(1,0),
                           labels = c('Masculino', 'Femenino'))
+
 Salario_sex <- base %>% group_by(sex_factor)  %>% 
   summarize(mean_sal_sex=mean(y_ingLab_m_ha))
+
+
 barras1 <- ggplot(Salario_sex, aes(x = sex_factor, y = mean_sal_sex)) +
   geom_bar(width = 0.5, colour = "skyblue", fill = "skyblue", stat = "identity") +
   labs(x = "Sexo", y = "Log del Salario por hora") +
   theme_bw() +
   scale_y_continuous(labels = scales::dollar_format()) 
 barras1
-ggsave("Views/barras1.png", width = 6, height = 4,plot=barras1)
+ggsave("Views/barras1.pdf", width = 6, height = 4,plot=barras1)
 
 #6. Gráfico de Barras: Edad vs. Salario Promedio
 
@@ -136,7 +139,7 @@ barras2 <- ggplot(Edad, aes(x = age, y = mean_sal)) +
   theme_bw() +
   scale_y_continuous(labels = scales::dollar_format()) 
 barras2
-ggsave("Views/barras2.png", width = 6, height = 4,plot=barras2)
+ggsave("Views/barras2.pdf", width = 6, height = 4,plot=barras2)
 
 #3  LOG DEL SALARIO VS EDAD Y EDAD AL CUADRADO 
 
@@ -228,12 +231,18 @@ boot.ci(boot.out = wage_gap, conf = c(0.95, 0.99), type = 'all')
 base_female<- base %>% filter(Female==1)
 base_male<-base %>% filter(Female==0)
 
-predict_plot<-ggplot() + 
-              geom_smooth(data=base_male, aes(x=age, y=ln_sal), color='steelblue', method = "lm", formula = y ~ poly(x, 2)) + 
-              geom_smooth(data=base_female, aes(x=age, y=ln_sal), color='coral2', method = "lm", formula = y ~ poly(x, 2)) + 
-              theme_bw() +
-              labs(x = "Edad en años", y = "Logaritmo del salario") +
+# Try running your ggplot code
+predict_plot <- ggplot() + 
+  geom_smooth(data=base_male, aes(x=age, y=ln_sal, color="Masculino"), method="lm", formula=y ~ poly(x, 2)) + 
+  geom_smooth(data=base_female, aes(x=age, y=ln_sal, color="Femenino"), method="lm", formula=y ~ poly(x, 2)) + 
+  theme_bw() +
+  labs(x="Edad en años", y="Logaritmo del salario") +
+  scale_colour_manual(name="Sexo", values=c("Masculino"="steelblue", "Femenino"="coral2"))
+
 predict_plot
+
+ggsave("Views/predict_by_zex.png", width = 6, height = 4,plot=predict_plot)
+
 
 #5.Predicting Earnings 
 set.seed(10101)  
