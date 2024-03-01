@@ -147,7 +147,7 @@ ggsave("Views/barras2.pdf", width = 6, height = 4,plot=barras2)
 #A Regresión_ Age
 base$age_2 <- base$age^2
 modelo1 <- lm(ln_sal~age + age_2, data=base)
-stargazer(modelo1, type="latex", title = "Resultados Modelo 1", out = "Views/mod1.txt")
+stargazer(modelo1, type="latex", title = "Resultados Modelo 1", out = "Views/mod1.txt",digits = 5)
 
 # Intervalo de confianza con boostrap:
 boostage <-function(data,index){
@@ -186,7 +186,7 @@ ggsave("Views/dispersion2.png", width = 6, height = 4,plot=dispersion2)
 # A. Regresión simple: Female 
 base$Female <- ifelse(base$sex == 0, 1, 0) #cambiamos la variable sexo dado que ésta inicialmente toma el valor de 1 si la persona es hombre y 0 d.l.c para que tome el valor de 1 si la persona es mujer y 0 d.l.c y así correr el modelo con la que realmente se requiere en las instrucciones
 modelo2 <- lm(ln_sal~ Female , data=base)
-stargazer(modelo2, keep="Female", type="latex", title = "Resultados Modelo 2", out = "Views/mod2.txt")
+stargazer(modelo2, keep="Female", type="latex", title = "Resultados Modelo 2", out = "Views/mod2.txt",digits = 5)
 
 # Regresión multiple (controles): Female
 #Inicialmente vamos a volver P7040 de Binaria a Dummy
@@ -201,7 +201,7 @@ xpmod = lm(Female ~ age + factor(maxEducLevel) + formal + factor(oficio) + hours
 FWL = data.frame('yprima' = ypmod["residuals"], 'xprima' = xpmod["residuals"])
 
 fwlmod = lm(residuals ~ residuals.1, data = FWL)
-stargazer(fwlmod, type="latex", title = "Resultados FWL Simple", out = "Views/modfwl.txt")
+stargazer(fwlmod, type="latex", title = "Resultados FWL Simple", out = "Views/modfwl.txt",digits = 5)
 
 #FWL con Bootstrap:
 FWL_boots <-function(data,index){
