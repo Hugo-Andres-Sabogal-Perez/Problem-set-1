@@ -189,7 +189,7 @@ dispersion2 = ggplot(base, aes(x = age, y = ln_sal)) +
   ylab("Logaritmo del salario por hora") 
 
 dispersion2
-ggsave("Views/dispersion2.png", width = 6, height = 4,plot=dispersion2)
+ggsave("Views/dispersion2.pdf", width = 6, height = 4,plot=dispersion2)
 
 #PUNTO 4
 # A. Regresión simple: Female 
@@ -198,10 +198,6 @@ modelo2 <- lm(ln_sal~ Female , data=base)
 stargazer(modelo2, keep="Female", type="latex", title = "Resultados Modelo 2", out = "Views/mod2.txt",digits = 5)
 
 # Regresión multiple (controles): Female
-#Inicialmente vamos a volver P7040 de Binaria a Dummy
-base$p7040= base$p7040-1
-#creamos un ID
-base$id<-rownames(base)
 
 # FWL simple:
 ypmod = lm(ln_sal ~ age + factor(maxEducLevel) + formal + factor(oficio) + hoursWorkUsual + p7040 + sizeFirm, data=base)
