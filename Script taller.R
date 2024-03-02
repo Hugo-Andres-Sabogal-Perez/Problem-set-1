@@ -538,6 +538,7 @@ ERR[7,] = c('Modelo 7', score7)
 stargazer(ERR, summary = F, type = 'text')
 
 # LOOCV:
+# Eliminamos cotPension y p6090_1 debido a que mediante el metodo lm sus coeficientes estimados son nulos.
 formback = as.formula(lnw ~ sex + p6210 + 
                         p6210s1 + oficio + p7505 + 
                         college + totalHoursWorked + sizeFirm + 
@@ -548,8 +549,8 @@ formback = as.formula(lnw ~ sex + p6210 +
                         p6630s6a1 + p6630s6a1^2 + p7500s1a1 +
                         p7500s1a1^2 +p7500s2a1^2 + p7500s3a1^2 +
                         p7510s3a1 + ingtotob^2 + ingtot +
-                        ingtot^2 + mes_12 + p6920_3 +
-                        cotPension_3 + iof3h + ingtotob)
+                        ingtot^2 + mes_12 + p6920_3 + iof3h + 
+                        ingtotob)
 formfor = as.formula(lnw ~ sex + p6210 + 
                        oficio + college + totalHoursWorked + 
                        formal + sizeFirm + p6240_3 + 
@@ -557,8 +558,7 @@ formfor = as.formula(lnw ~ sex + p6210 +
                        p6585s4a1 + p6610s1 + p6630s6a1 + 
                        p6630s6a1^2 + p7500s3a1^2 + iof3i^2 + 
                        ingtotob^2 + ingtot + p6920_3 +
-                       cotPension_3 + p6090_1 + iof3h +
-                       ingtotob)
+                       iof3h + ingtotob)
 loocv = trainControl(method = "LOOCV")
 
 # LOOCV para el modelo de forward:
