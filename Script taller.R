@@ -16,6 +16,8 @@ require(boot)
 require(tidytable)
 require(VIM)
 require(leaps)
+require(margins)
+
 
 ### Función para importar datos
 importar_datos<-function(){
@@ -79,6 +81,7 @@ DF=DF[!(rownames(DF)%in%c("5733", "579")),]
 
 # 2. Estadisticas descriptivas:
 base= DF %>% select(age,oficio, formal, maxEducLevel, orden, p7040, sex, sizeFirm, y_ingLab_m_ha, hoursWorkUsual)
+base$p7040[base$p7040 == 2] <- 0
 base$ln_sal = log(base$y_ingLab_m_ha) #Se crea el logaritmo del salario por horas para normalizar los valores de la variable.
 stargazer(base, type= "text", summary=T, title = "Estadisticas Descriptivas",out = "Views/esta_des.txt")
 
@@ -146,8 +149,14 @@ ggsave("Views/barras2.pdf", width = 6, height = 4,plot=barras2)
 
 #A Regresión_ Age
 base$age_2 <- base$age^2
-modelo1 <- lm(ln_sal~age + age_2, data=base)
-stargazer(modelo1, type="latex", title = "Resultados Modelo 1", out = "Views/mod1.txt",digits = 5)
+modelo1 <- lm(ln_sal~age+I(age^2), data=base)
+mar <-  summary(margins(modelo1))
+      
+
+
+stargazer(modelo1, margin_effect,type="latex", title = "Resultados Modelo 1", out = "Views/mod1.txt",digits = 5)
+
+
 
 # Intervalo de confianza con boostrap:
 boostage <-function(data,index){
