@@ -342,9 +342,9 @@ DF$lnw = log(DF$y_ingLab_m_ha)
 ED$Tipo = rep(NA, nrow(ED))
 ordinales = c('estrato1','age', 'p6100','p6210', 'p6210s1',  "oficio", "relab", "p6870", "fex_dpto","hoursWorkUsual", 
               "fweight", "maxEducLevel", "regSalud",   "totalHoursWorked", "sizeFirm")
-categoricas = c('mes', 'p6050', "p6240", "p6920", "cotPension", 'p6090')
+categoricas = c('mes', 'p6050', "p6240", "p6920", "cotPension")
 binarias = c('sex',"college", "formal", "informal", "microEmpresa")
-binar12 = c("p7040","p7090","p7495","p7505")
+binar12 = c("p7040","p7090","p7495","p7505", 'p6090')
 continuas = c('p6426', "p6500", "p6510s1", "p6545s1", "p6580s1", "p6585s1a1", "p6585s2a1", "p6585s3a1", "p6585s4a1", 
               "p6590s1", "p6600s1", "p6610s1", "p6620s1", "p6630s1a1", "p6630s2a1", "p6630s3a1", "p6630s4a1","p6630s6a1",
               "p7070", "p7500s1a1", "p7500s2a1", "p7500s3a1", "p7510s1a1", "p7510s2a1", "p7510s3a1", "p7510s5a1","p7510s6a1",
@@ -359,6 +359,11 @@ ED = ED %>% mutate(Tipo = case_when(Variable %in% continuas ~ 'continua',
                                     Variable %in% ordinales ~ 'ordi',
                                     Variable %in% categoricas ~ 'cat',
                                     Variable %in% c(binarias, binar12) ~ 'dummy'))                                 
+# Eliminacion de outliers de categoricas:
+DF = DF[DF$p6090 != 9,]
+DF = DF[DF$p6100 != 9,]
+DF = DF[DF$p6210 != 9,]
+DF = DF[DF$relab != 8,]
 
 # Se estandarizan los datos ordinales y contunuos:
 DF = DF %>% mutate_at(c(continuas, ordinales), ~(scale(.) %>% as.vector))
@@ -385,12 +390,13 @@ DF = DF %>% mutate_at(binar12, ~ (resta1(.)))
 # Se escogen variables que no tengan covarianza 1 con otras:
 Corr = as.data.frame(cor(DF, use = 'complete.obs'))
 
-ED$Corr = rep(NA, nrow(ED))
+ED$Corr = as.vector(rep(NA, nrow(ED)))
+
 for(var in rownames(Corr)){
   COR = Corr %>% select(var)
   names = colnames(Corr)[abs(COR) > 0.999]
   names = names[!is.na(names)]
-  ED[ED$Variable == var,6] = toString(names)
+  ED$Corr[ED$Variable == var] = toString.default(names)
 }
 
 # Variables a descartar:
@@ -402,9 +408,8 @@ ED = ED[!(ED$Variable %in% r),]
 
 # Imputación de variables por knn:
 # k = 5
-
 DFimp = kNN(DF)
-DFimp = DFimp[,1:91]
+DFimp = DFimp[,1:89]
 
 # Test y train:
 set.seed(10101)  
@@ -421,10 +426,11 @@ testing  <- DFimp[-inTrain,]
 # Formula general para la selección de variables:
 varspoly = ED$Variable[ED$Tipo == 'continua']
 varsum = ED$Variable[ED$Tipo != 'continua']
-varcat = colnames(DFimp)[57:91]
+varcat = colnames(DFimp)[57:89]
 maxmodel = as.formula(paste("lnw ~", paste(varsum, collapse = '+'), '+',paste(varcat, collapse = '+'),'+',paste("poly(", varspoly , ", 2, raw=TRUE)", collapse = " + ")))
 
 # Modelo Forward Selection:
+set.seed(10101)
 folds = sample(rep (1:10, length = nrow(DFimp)))
 crossval = matrix (NA, 10, 50, dimnames = list (NULL , paste (1:50)))
 for (j in 1:10) {
@@ -440,18 +446,18 @@ for (j in 1:10) {
 # Se calcula la raiz del error cuadratico medio:
 errforward = apply (crossval , 2, mean)
 
-which.min(errforward)[[1]]
+nvars = which.min(errforward)[[1]]
 
-#Re run again the forward algorithm  get the actual  24 variables in the selected model
-forward_model = regsubsets(maxmodel, ## formula
-                            data = training, ## data frame full data
-                            nvmax = which.min(errforward)[[1]], 
-                            method = "forward") ## run only the first 9 models
+#Se estima el mejor modelo con 24 variables elegidas mediante el algoritmo forward.
+forward_model = regsubsets(maxmodel,
+                            data = DFimp, 
+                            nvmax = nvars, 
+                            method = "forward") 
 
-forward_model_names = names(coef(forward_model, id=which.min(errforward)[[1]]))
+forward_model_names = names(coef(forward_model, id=nvars))
 
-forward_model_names
-score5 = errforward[which.min(errforward)[[1]]]
+# Se extrae el RMSE del modelo:
+score5 = errforward[nvars]
 
 # Modelo Backward Selection:
 for (j in 1:10) {
@@ -467,19 +473,18 @@ for (j in 1:10) {
 # Se calcula la raiz del error cuadratico medio:
 errbackward = apply (crossval , 2, mean)
 
-which.min(errbackward)[[1]]
+nvars = which.min(errbackward)[[1]]
 
-#Re run again the forward algorithm  get the actual 38 variables in the selected model
-backward_model = regsubsets(maxmodel, ## formula
-                            data = DFimp, ## data frame full data
-                            nvmax = which.min(errbackward)[[1]], 
-                            method = "backward") ## run only the first 9 models
+#Se estiam el mejor modelo de 35 variables:
+backward_model = regsubsets(maxmodel, 
+                            data = DFimp, 
+                            nvmax = nvars, 
+                            method = "backward") 
 
-backward_model_names = names(coef(backward_model, id=which.min (errbackward)[[1]]))
+backward_model_names = names(coef(backward_model, id = nvars))
 
-backward_model_names
-
-score6 = errbackward[which.min(errbackward)[[1]]]
+# Se extrae el RMSE del modelo de 48 variables:
+score6 = errbackward[nvars]
 
 # Net:
 # Creo la matriz de predictores:
@@ -488,7 +493,7 @@ Xsmall = as.matrix(DFimp[,-c('lnw')])
 # Creo el vector de la variable dependiente:
 y = as.matrix(DFimp[,'lnw'])
 
-# Esymacion por net:
+# Estmacion por net sin optimizar el valor de alpha:
 ENet = cv.glmnet(
   x = Xsmall,
   y = y,
@@ -520,27 +525,25 @@ stargazer(ERR, summary = F, type = 'text')
 
 # LOOCV:
 formback = as.formula(lnw ~ sex + p6210 + 
-                        oficio + p7505 + college + 
-                        totalHoursWorked + sizeFirm + p6050_2 + 
-                        p6240_3 + p6240_4 + p6920_2 +
-                        p6090_2 + p6585s1a1 + p6585s1a1^2 +
-                        p6585s2a1 + p6585s3a1 + p6585s4a1 +
-                        p6585s4a1^2 + p6600s1^2 + p6610s1 +
-                        p6620s1 + p6630s3a1^2 + p6630s4a1^2 +
+                        p6210s1 + oficio + p7505 + 
+                        college + totalHoursWorked + sizeFirm + 
+                        p6240_4 + p6920_2 +p6426^2 + 
+                        p6585s1a1 + p6585s1a1^2 + p6585s2a1 +
+                        p6585s3a1 + p6585s4a1 + p6585s4a1^2 + 
+                        p6600s1^2 + p6610s1 + p6620s1 + 
                         p6630s6a1 + p6630s6a1^2 + p7500s1a1 +
-                        p7500s1a1^2 + p7500s2a1^2 + p7500s3a1^2 +
+                        p7500s1a1^2 +p7500s2a1^2 + p7500s3a1^2 +
                         p7510s3a1 + ingtotob^2 + ingtot +
-                        ingtot^2 + y_salary_m^2 + p6920_3 +
-                        iof3h + ingtotob)
+                        ingtot^2 + mes_12 + p6920_3 +
+                        cotPension_3 + iof3h + ingtotob)
 formfor = as.formula(lnw ~ sex + p6210 + 
                        oficio + college + totalHoursWorked + 
                        formal + sizeFirm + p6240_3 + 
-                       p6240_4 + p6585s1a1 + p6585s2a1 +
-                       p6585s4a1 + p6610s1 + p6630s2a1^2 +
-                       p6630s6a1 + p6630s6a1^2 + iof3i^2 +
+                       p6240_4 + p6585s1a1 + p6585s2a1 + 
+                       p6585s4a1 + p6610s1 + p6630s6a1 + 
+                       p6630s6a1^2 + p7500s3a1^2 + iof3i^2 + 
                        ingtotob^2 + ingtot + p6920_3 +
-                       p6630s3a1^2 + p6630s4a1^2 +
-                       p6630s6a1 + p6090_9 + iof3h +
+                       cotPension_3 + p6090_1 + iof3h +
                        ingtotob)
 loocv = trainControl(method = "LOOCV")
 
@@ -551,7 +554,7 @@ modelfw = train(formfor,
                   trControl= loocv)
 scorefw = RMSE(modelfw$pred$pred, DFimp$lnw)
 
-# LOOCV para del back:
+# LOOCV para el back:
 modelbw = train(formback,
                 data = DFimp,
                 method = 'lm', 
