@@ -195,7 +195,6 @@ ggsave("Views/dispersion2.pdf", width = 6, height = 4,plot=dispersion2)
 # A. Regresión simple: Female 
 base$Female <- ifelse(base$sex == 0, 1, 0) #cambiamos la variable sexo dado que ésta inicialmente toma el valor de 1 si la persona es hombre y 0 d.l.c para que tome el valor de 1 si la persona es mujer y 0 d.l.c y así correr el modelo con la que realmente se requiere en las instrucciones
 modelo2 <- lm(ln_sal~ Female , data=base)
-stargazer(modelo2, keep="Female", type="latex", title = "Resultados Modelo 2", out = "Views/mod2.txt",digits = 5)
 
 # Regresión multiple (controles): Female
 
@@ -206,7 +205,11 @@ xpmod = lm(Female ~ age + factor(maxEducLevel) + formal + factor(oficio) + hours
 FWL = data.frame('yprima' = ypmod["residuals"], 'xprima' = xpmod["residuals"])
 
 fwlmod = lm(residuals ~ residuals.1, data = FWL)
-stargazer(fwlmod, type="latex", title = "Resultados FWL Simple", out = "Views/modfwl.txt",digits = 5)
+stargazer(modelo2,fwlmod, fwlmod,type="latex", title = "Resultados FWL Simple", 
+          out = "Views/modsfemale(latex).tex",digits = 5, add.lines=c(list(c("Errores estandar", "Convencionales", "Convencionales", "Bootstrap"),
+                                                                             c("Controles", "No", "Si", "Si"))))
+
+
 
 #FWL con Bootstrap:
 FWL_boots <-function(data,index){
@@ -225,9 +228,20 @@ FWL_boots <-function(data,index){
   return(coefs)
 }
 # Se hace la estimacion por bootstrap:
+set.seed(10101) 
 wage_gap = boot(data=base, FWL_boots, R=5000)
 wage_gap
-#HUGO pon stargazer a mano 
+
+#Stargazer de 3 regresiones: El erro estandar de bootstrap se coloco manualmente
+
+stargazer(modelo2,fwlmod, 
+          fwlmod,type="latex", 
+          title = "Resultados FWL Simple", 
+          out = "Views/modsfemale(latex).tex",digits = 5, 
+          add.lines=c(list(c("Errores estandar", "Convencionales", "Convencionales", "Bootstrap"),
+                           c("Controles", "No", "Si", "Si"))))
+
+
 # Calculo intervalo de confianza:
 boot.ci(boot.out = wage_gap, conf = c(0.95, 0.99), type = 'percentil')
 
