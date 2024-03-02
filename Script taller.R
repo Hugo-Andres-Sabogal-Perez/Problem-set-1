@@ -473,6 +473,22 @@ forward_model_names = names(coef(forward_model, id=nvars))
 # Se extrae el RMSE del modelo:
 score5 = errforward[nvars]
 
+# Se plentea la forma funcional de forward selection:
+formfor = as.formula(lnw ~ sex + p6210 + 
+                       oficio + college + totalHoursWorked + 
+                       formal + sizeFirm + p6240_3 + 
+                       p6240_4 + p6585s1a1 + p6585s2a1 + 
+                       p6585s4a1 + p6610s1 + p6630s6a1 + 
+                       p6630s6a1^2 + p7500s3a1^2 + iof3i^2 + 
+                       ingtotob^2 + ingtot + p6920_3 +
+                       iof3h + ingtotob)
+
+# Se calcula el RMSE fuera de muestra:
+modelo5 = lm(formfor, data = training )
+predictions = predict(modelo5, testing)
+score5a = RMSE(predictions, testing$lnw)
+
+
 # Modelo Backward Selection:
 for (j in 1:10) {
   fit = regsubsets(maxmodel, data = DFimp[folds != j,], nvmax = 50, method = "backward") 
@@ -497,48 +513,10 @@ backward_model = regsubsets(maxmodel,
 
 backward_model_names = names(coef(backward_model, id = nvars))
 
-# Se extrae el RMSE del modelo de 48 variables:
+# Se extrae el RMSE del modelo de 35 variables:
 score6 = errbackward[nvars]
 
-# Net:
-# Creo la matriz de predictores:
-Xsmall = as.matrix(DFimp[,-c('lnw')])
-
-# Creo el vector de la variable dependiente:
-y = as.matrix(DFimp[,'lnw'])
-
-# Estmacion por net sin optimizar el valor de alpha:
-ENet = cv.glmnet(
-  x = Xsmall,
-  y = y,
-  alpha = 0.5
-)
-
-lamda = ENet$lambda.min
-
-net_model = glmnet(
-  x = Xsmall,
-  y = y,
-  lambda = lamda,
-  alpha = 0.5
-)
-
-score7 = min(ENet$cvm)
-
-# Se crea un data frame con los errores de cada modelo:
-ERR = data.frame('MODELO' = rep(NA, 7), 'MSE(Muestral)' =  rep(NA, 7))
-ERR[1,] = c('Modelo 1', score1a)
-ERR[2,] = c('Modelo 2', score2a)
-ERR[3,] = c('Modelo 3', score3a)
-ERR[4,] = c('Modelo 4', score4a)
-ERR[5,] = c('Modelo 5', score5)
-ERR[6,] = c('Modelo 6', score6)
-ERR[7,] = c('Modelo 7', score7)
-
-stargazer(ERR, summary = F, type = 'text')
-
-# LOOCV:
-# Eliminamos cotPension y p6090_1 debido a que mediante el metodo lm sus coeficientes estimados son nulos.
+# Se plantea la forma funcional del modelo:
 formback = as.formula(lnw ~ sex + p6210 + 
                         p6210s1 + oficio + p7505 + 
                         college + totalHoursWorked + sizeFirm + 
@@ -551,14 +529,42 @@ formback = as.formula(lnw ~ sex + p6210 +
                         p7510s3a1 + ingtotob^2 + ingtot +
                         ingtot^2 + mes_12 + p6920_3 + iof3h + 
                         ingtotob)
-formfor = as.formula(lnw ~ sex + p6210 + 
-                       oficio + college + totalHoursWorked + 
-                       formal + sizeFirm + p6240_3 + 
-                       p6240_4 + p6585s1a1 + p6585s2a1 + 
-                       p6585s4a1 + p6610s1 + p6630s6a1 + 
-                       p6630s6a1^2 + p7500s3a1^2 + iof3i^2 + 
-                       ingtotob^2 + ingtot + p6920_3 +
-                       iof3h + ingtotob)
+
+# Se calcula el RMSE fuera de muestra:
+modelo6 = lm(formback, data = training )
+predictions = predict(modelo6, testing)
+score6a = RMSE(predictions, testing$lnw)
+
+# Interseccion entre modelos:
+# Creo la matriz de predictores:
+formint = as.formula(lnw ~ sex + p6210 + oficio + 
+                        college + totalHoursWorked + sizeFirm + 
+                        p6240_4 + p6585s1a1 + p6585s2a1 +
+                        p6585s4a1 + p6610s1 +  p6630s6a1 + p6630s6a1^2 +
+                        p7500s3a1^2 + ingtotob^2 + ingtot +
+                        p6920_3 + iof3h + ingtotob)
+
+# Se calcula el RMSE fuera de muestra:
+modelo7 = lm(formint, data = training)
+predictions = predict(modelo7, testing)
+score7 = RMSE(predictions, testing$lnw)
+
+
+# Se crea un data frame con los errores de cada modelo:
+ERR = data.frame('MODELO' = rep(NA, 7), 'MSE(Muestral)' =  rep(NA, 7))
+ERR[1,] = c('Modelo 1', score1a)
+ERR[2,] = c('Modelo 2', score2a)
+ERR[3,] = c('Modelo 3', score3a)
+ERR[4,] = c('Modelo 4', score4a)
+ERR[5,] = c('Modelo 5', score5a)
+ERR[6,] = c('Modelo 6', score6a)
+ERR[7,] = c('Modelo 7', score7)
+
+stargazer(ERR, summary = F, type = 'text')
+
+# LOOCV:
+# Eliminamos cotPension y p6090_1 debido a que mediante el metodo lm sus coeficientes estimados son nulos.
+
 loocv = trainControl(method = "LOOCV")
 
 # LOOCV para el modelo de forward:
