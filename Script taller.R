@@ -242,7 +242,6 @@ wage_gap <- boot(data = base, FWL_boots, R = 5000)
 wage_gap
 
 # Stargazer de 3 regresiones: El erro estandar de bootstrap se coloco manualmente
-
 stargazer(modelo2, fwlmod,
   fwlmod,
   type = "latex",
@@ -254,9 +253,6 @@ stargazer(modelo2, fwlmod,
   ))
 )
 
-
-# Calculo intervalo de confianza:
-boot.ci(boot.out = wage_gap, conf = c(0.95, 0.99), type = "percentil")
 
 # Hallando los peakages por género
 base_female <- base %>% filter(Female == 1)
@@ -609,11 +605,25 @@ MSEdist = data.frame('ID' = rownames(testing), 'salario_real' = testing$lnw, 'sa
 
 MSEdist$MSE = (MSEdist$salario_real - MSEdist$salario_predicho)^2
 
-hist(MSEdist$MSE)
+##Histograma del MSE
+
+
+histograma_mse <- ggplot(MSEdist, aes(x = MSE)) +
+  geom_histogram(color = "darkblue",fill = "darkblue", bins=40) +
+  xlab("MSE del modelo 6") +
+  ylab("Frecuencia") +
+  theme_bw()
+
+histograma_mse
+
+ggsave("Views/histograma_mse.pdf", width = 6, height = 4, plot = histograma_mse)
+
 
 # Calculo de valores extremos (> 3 veces la desviacion estandard):
 sd = sqrt(var(MSEdist$MSE))
 crit = 3*sd
+
+
 
 MSEdist$missObs = ifelse(MSEdist$MSE > crit, 1, 0)
 sum(MSEdist$missObs)
