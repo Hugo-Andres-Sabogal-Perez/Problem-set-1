@@ -154,7 +154,7 @@ mar <-  summary(margins(modelo1))
       
 
 
-stargazer(modelo1, margin_effect,type="latex", title = "Resultados Modelo 1", out = "Views/mod1.txt",digits = 5)
+stargazer(modelo1,type="latex", title = "Resultados Modelo 1", out = "Views/mod1.txt",digits = 5)
 
 
 
@@ -275,8 +275,6 @@ boot.ci(boot.out = peakage, conf = c(0.95, 0.99), type = 'all')
 #Plot of predicting income
 
 
-
-# Try running your ggplot code
 predict_plot <- ggplot() + 
   geom_smooth(data=base_male, aes(x=age, y=ln_sal, color="Masculino"), method="lm", formula=y ~ poly(x, 2)) + 
   geom_smooth(data=base_female, aes(x=age, y=ln_sal, color="Femenino"), method="lm", formula=y ~ poly(x, 2)) + 
@@ -286,7 +284,7 @@ predict_plot <- ggplot() +
 
 predict_plot
 
-ggsave("Views/predict_by_zex.png", width = 6, height = 4,plot=predict_plot)
+ggsave("Views/predict_by_zex.pdf", width = 6, height = 4,plot=predict_plot)
 
 
 #5.Predicting Earnings 
