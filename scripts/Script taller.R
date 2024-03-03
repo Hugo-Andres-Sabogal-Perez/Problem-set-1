@@ -601,6 +601,7 @@ ERR[7, ] <- c("Modelo 7", score7)
 
 stargazer(ERR, summary = F, type = "latex", out = "Views/tabla_mse.tex")
 stargazer(modelo6, summary = T, type = 'text')
+
 # Errores de prediccion en el test (modelo 6):
 predictions = predict(modelo6, testing)
 MSEdist = data.frame('ID' = rownames(testing), 'salario_real' = testing$lnw, 'salario_predicho' = predictions) 
