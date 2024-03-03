@@ -156,7 +156,7 @@ mar <-  summary(margins(modelo1))
 
 stargazer(modelo1,type="latex", title = "Resultados Modelo 1", out = "Views/mod1.txt",digits = 5)
 
-
+set.seed(10101)
 
 # Intervalo de confianza con boostrap:
 boostage <-function(data,index){
@@ -209,8 +209,6 @@ stargazer(modelo2,fwlmod, fwlmod,type="latex", title = "Resultados FWL Simple",
           out = "Views/modsfemale(latex).tex",digits = 5, add.lines=c(list(c("Errores estandar", "Convencionales", "Convencionales", "Bootstrap"),
                                                                              c("Controles", "No", "Si", "Si"))))
 
-
-
 #FWL con Bootstrap:
 FWL_boots <-function(data,index){
   ypmod = lm(ln_sal ~ age + factor(maxEducLevel) + formal + factor(oficio) + hoursWorkUsual + p7040 + sizeFirm, data, subset=index)
@@ -228,7 +226,6 @@ FWL_boots <-function(data,index){
   return(coefs)
 }
 # Se hace la estimacion por bootstrap:
-set.seed(10101) 
 wage_gap = boot(data=base, FWL_boots, R=5000)
 wage_gap
 
