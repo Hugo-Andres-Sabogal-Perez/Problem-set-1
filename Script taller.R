@@ -152,8 +152,6 @@ base$age_2 <- base$age^2
 modelo1 <- lm(ln_sal~age+I(age^2), data=base)
 mar <-  summary(margins(modelo1))
       
-
-
 stargazer(modelo1,type="latex", title = "Resultados Modelo 1", out = "Views/mod1.txt",digits = 5)
 
 set.seed(10101)
@@ -301,18 +299,26 @@ testing  <- base[-inTrain,]
 form_1 <- ln_sal ~ age + age_2 
 modelo1a <- lm(form_1,
                data = training)
-predictions <- predict(modelo1a, testing)
-score1a<- RMSE(predictions, testing$ln_sal )
+predictions1 <- predict(modelo1a, testing)
+score1a<- RMSE(predictions1, testing$ln_sal )
 score1a
 
 # 2. 
-form_2<- ln_sal ~ Female + age + factor(maxEducLevel) + formal + factor(oficio) + hoursWorkUsual + p7040 + sizeFirm
+testing_of<-testing
+
+testing_of$oficio<-factor(testing_of$oficio, exclude = c(73, 63))
+
+form_2<- ln_sal ~ Female + age + factor(maxEducLevel) + formal + factor(oficio) + hoursWorkUsual + p7040 + factor(sizeFirm)
 
 modelo2a <- lm(form_2,
                data = training )
-testing$oficio <- factor(testing$oficio, levels = levels(training$oficio))
-predictions <- predict(modelo2a, testing)
-score2a<- RMSE(predictions, testing$ln_sal )
+
+predictions2 <- predict(modelo2a, testing_of)
+
+data_mod2a<-data.frame("ln_sal"=testing_of$ln_sal, 'pred2'=predictions2)
+data_mod2a <- na.omit(data_mod2a)
+
+score2a<- RMSE(pred=data_mod2a$pred2, obs=data_mod2a$ln_sal)
 
 score2a
 
@@ -334,8 +340,14 @@ form_4 <- ln_sal ~ age + age_2 +
   poly(age,3,raw=TRUE):sizeFirm 
 modelo4a <- lm(form_4,
                data = training )
-predictions <- predict(modelo4a, testing)
-score4a<- RMSE(predictions, testing$ln_sal)
+
+predictions4 <- predict(modelo4a, testing_of)
+
+data_mod4a<-data.frame("ln_sal"=testing_of$ln_sal, 'pred4'=predictions4)
+data_mod4a <- na.omit(data_mod4a)
+
+
+score4a<- RMSE(pred=data_mod4a$pred4, obs=data_mod4a$ln_sal)
 score4a
 
 #5.
@@ -556,7 +568,7 @@ ERR[5,] = c('Modelo 5', score5a)
 ERR[6,] = c('Modelo 6', score6a)
 ERR[7,] = c('Modelo 7', score7)
 
-stargazer(ERR, summary = F, type = 'text')
+stargazer(ERR, summary = F, type = 'latex', out='Views/tabla_mse.tex')
 
 # LOOCV:
 # Eliminamos cotPension y p6090_1 debido a que mediante el metodo lm sus coeficientes estimados son nulos.
