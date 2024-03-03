@@ -310,6 +310,7 @@ form_2<- ln_sal ~ Female + age + factor(maxEducLevel) + formal + factor(oficio) 
 
 modelo2a <- lm(form_2,
                data = training )
+testing$oficio <- factor(testing$oficio, levels = levels(training$oficio))
 predictions <- predict(modelo2a, testing)
 score2a<- RMSE(predictions, testing$ln_sal )
 
