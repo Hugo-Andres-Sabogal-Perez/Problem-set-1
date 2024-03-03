@@ -513,13 +513,13 @@ score5 <- errforward[nvars]
 
 # Se plentea la forma funcional de forward selection:
 formfor <- as.formula(lnw ~ sex + p6210 +
-  oficio + college + totalHoursWorked +
-  formal + sizeFirm + p6240_3 +
-  p6240_4 + p6585s1a1 + p6585s2a1 +
-  p6585s4a1 + p6610s1 + p6630s6a1 +
-  p6630s6a1^2 + p7500s3a1^2 + iof3i^2 +
-  ingtotob^2 + ingtot + p6920_3 +
-  iof3h + ingtotob)
+                        oficio + college + totalHoursWorked +
+                        formal + sizeFirm + p6240_3 +
+                        p6240_4 + p6585s1a1 + p6585s2a1 +
+                        p6585s4a1 + p6610s1 + p6630s6a1 +
+                        I(p6630s6a1^2) + I(p7500s3a1^2) + I(iof3i^2) +
+                        I(ingtotob^2) + ingtot + p6920_3 +
+                        iof3h + ingtotob)
 
 # Se calcula el RMSE fuera de muestra:
 modelo5 <- lm(formfor, data = training)
@@ -557,17 +557,17 @@ score6 <- errbackward[nvars]
 
 # Se plantea la forma funcional del modelo:
 formback <- as.formula(lnw ~ sex + p6210 +
-  p6210s1 + oficio + p7505 +
-  college + totalHoursWorked + sizeFirm +
-  p6240_4 + p6920_2 + p6426^2 +
-  p6585s1a1 + p6585s1a1^2 + p6585s2a1 +
-  p6585s3a1 + p6585s4a1 + p6585s4a1^2 +
-  p6600s1^2 + p6610s1 + p6620s1 +
-  p6630s6a1 + p6630s6a1^2 + p7500s1a1 +
-  p7500s1a1^2 + p7500s2a1^2 + p7500s3a1^2 +
-  p7510s3a1 + ingtotob^2 + ingtot +
-  ingtot^2 + mes_12 + p6920_3 + iof3h +
-  ingtotob)
+                         p6210s1 + oficio + p7505 +
+                         college + totalHoursWorked + sizeFirm +
+                         p6240_4 + p6920_2 + I(p6426^2) +
+                         p6585s1a1 + I(p6585s1a1^2) + p6585s2a1 +
+                         p6585s3a1 + p6585s4a1 + I(p6585s4a1^2) +
+                         I(p6600s1^2) + p6610s1 + p6620s1 +
+                         p6630s6a1 + I(p6630s6a1^2) + p7500s1a1 +
+                         I(p7500s1a1^2) + I(p7500s2a1^2) + I(p7500s3a1^2) +
+                         p7510s3a1 + I(ingtotob^2) + ingtot +
+                         I(ingtot^2) + mes_12 + p6920_3 + iof3h +
+                         ingtotob)
 
 # Se calcula el RMSE fuera de muestra:
 modelo6 <- lm(formback, data = training)
@@ -577,11 +577,11 @@ score6a <- RMSE(predictions, testing$lnw)
 # Interseccion entre modelos:
 # Creo la matriz de predictores:
 formint <- as.formula(lnw ~ sex + p6210 + oficio +
-  college + totalHoursWorked + sizeFirm +
-  p6240_4 + p6585s1a1 + p6585s2a1 +
-  p6585s4a1 + p6610s1 + p6630s6a1 + p6630s6a1^2 +
-  p7500s3a1^2 + ingtotob^2 + ingtot +
-  p6920_3 + iof3h + ingtotob)
+                        college + totalHoursWorked + sizeFirm +
+                        p6240_4 + p6585s1a1 + p6585s2a1 +
+                        p6585s4a1 + p6610s1 + p6630s6a1 + I(p6630s6a1^2) +
+                        I(p7500s3a1^2) + I(ingtotob^2) + ingtot +
+                        p6920_3 + iof3h + ingtotob)
 
 # Se calcula el RMSE fuera de muestra:
 modelo7 <- lm(formint, data = training)
@@ -600,7 +600,7 @@ ERR[6, ] <- c("Modelo 6", score6a)
 ERR[7, ] <- c("Modelo 7", score7)
 
 stargazer(ERR, summary = F, type = "latex", out = "Views/tabla_mse.tex")
-
+stargazer(modelo6, summary = T, type = 'text')
 # Errores de prediccion en el test (modelo 6):
 predictions = predict(modelo6, testing)
 MSEdist = data.frame('ID' = rownames(testing), 'salario_real' = testing$lnw, 'salario_predicho' = predictions) 
