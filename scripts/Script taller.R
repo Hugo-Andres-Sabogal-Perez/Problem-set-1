@@ -340,7 +340,7 @@ score2a <- RMSE(pred = data_mod2a$pred2, obs = data_mod2a$ln_sal)
 score2a
 
 # 3.
-form_3 <- ln_sal~ age + age^2 + age^3 + age^4 + age^5 + age^6 + age^7 + age^8
+form_3 <- ln_sal~ age + I(age^2) + I(age^3) + I(age^4) + I(age^5) + I(age^6) + I(age^7) + I(age^8)
 modelo3a <- lm(form_3, data = training)
 predictions <- predict(modelo3a, testing)
 score3a <- RMSE(predictions, testing$ln_sal)
