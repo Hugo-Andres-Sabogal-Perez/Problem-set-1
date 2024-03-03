@@ -3,6 +3,8 @@
 # Realizamos inicialmente una limpieza del entorno
 rm(list = ls())
 
+setwd(substr(getwd(), 1, nchar(getwd()) - 8))
+
 # Llamamos las librerías necesarias para la realización del trabajo
 require(pacman)
 require(tidyverse)
