@@ -1,5 +1,5 @@
 # Problem-Set-1. Big Data & Machine Learning
-Maria Paula Osuna, Hugo Sabogal, Juan Andres Silva y Gabriela Pérez.
+Maria Paula Osuna (202021732), Hugo Sabogal (202013538), Juan Andres Silva (201923201) y Gabriela Pérez (202013115).
 
 ## Carpetas
 Nuestro Repositorio contiene la siguientes carpetas: 
