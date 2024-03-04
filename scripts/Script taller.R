@@ -600,7 +600,7 @@ ERR[6, ] <- c("Modelo 6", score6a)
 ERR[7, ] <- c("Modelo 7", score7)
 
 stargazer(ERR, summary = F, type = "latex", out = "Views/tabla_mse.tex")
-stargazer(modelo6, summary = T, type = 'text')
+stargazer(modelo6,type = 'latex', out="Views/mod6.tex")
 
 # Errores de prediccion en el test (modelo 6):
 predictions = predict(modelo6, testing)
